@@ -115,29 +115,38 @@
         /* 🌟 AI 助手专属样式 */
         /* ========================================== */
         #ai-ball {
-            position: fixed; right: 30px; bottom: 30px; width: 60px; height: 60px; border-radius: 50%;
+            position: fixed; right: 28px; bottom: 28px; width: 76px; height: 76px; border-radius: 50%;
             background: radial-gradient(circle at 35% 28%, #c39bff 0%, #9b6cff 32%, #6a34d8 66%, #3a118f 100%);
             color: white; display: flex; align-items: center; justify-content: center;
             cursor: grab; z-index: 10001;
-            box-shadow: 0 0 20px rgba(150,90,255,0.7), 0 0 42px rgba(150,90,255,0.3), inset 0 2px 4px rgba(255,255,255,0.55), inset 0 -3px 7px rgba(40,0,110,0.5);
+            box-shadow: 0 0 22px rgba(150,90,255,0.7), 0 0 46px rgba(150,90,255,0.3), inset 0 2px 5px rgba(255,255,255,0.55), inset 0 -4px 8px rgba(40,0,110,0.5);
             user-select: none; transition: transform 0.2s, box-shadow 0.25s;
             animation: ai-breathe 3s ease-in-out infinite;
         }
+        /* 外层旋转光环（球的边缘） */
         #ai-ball::after {
-            content:''; position:absolute; inset:-6px; border-radius:50%;
+            content:''; position:absolute; inset:-7px; border-radius:50%;
             background: conic-gradient(from 0deg, #c39bff, #6a34d8, #7ee8ff, #c39bff, #6a34d8, #7ee8ff, #c39bff);
-            -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
-            mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
-            animation: ai-flow 3s linear infinite; pointer-events:none;
+            -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 5px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 5px));
+            animation: ai-flow 2.6s linear infinite; pointer-events:none;
+        }
+        /* 新增：芯片周围紧贴的一圈旋转光环（青蓝→紫，带虚线科技感） */
+        .ai-chip-ring {
+            position: absolute; width: 56px; height: 56px; border-radius: 50%;
+            background: conic-gradient(from 0deg, #7ee8ff, #c39bff, #6a34d8, #7ee8ff, #c39bff, #7ee8ff);
+            -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+            animation: ai-flow 1.8s linear infinite reverse; pointer-events: none;
         }
         @keyframes ai-flow { to { transform: rotate(360deg); } }
         @keyframes ai-breathe {
-            0%,100% { box-shadow: 0 0 20px rgba(150,90,255,0.7), 0 0 42px rgba(150,90,255,0.3), inset 0 2px 4px rgba(255,255,255,0.55), inset 0 -3px 7px rgba(40,0,110,0.5); }
-            50%     { box-shadow: 0 0 28px rgba(150,90,255,0.95), 0 0 58px rgba(150,90,255,0.5), inset 0 2px 4px rgba(255,255,255,0.65), inset 0 -3px 7px rgba(40,0,110,0.5); }
+            0%,100% { box-shadow: 0 0 22px rgba(150,90,255,0.7), 0 0 46px rgba(150,90,255,0.3), inset 0 2px 5px rgba(255,255,255,0.55), inset 0 -4px 8px rgba(40,0,110,0.5); }
+            50%     { box-shadow: 0 0 30px rgba(150,90,255,0.95), 0 0 62px rgba(150,90,255,0.5), inset 0 2px 5px rgba(255,255,255,0.65), inset 0 -4px 8px rgba(40,0,110,0.5); }
         }
         #ai-ball:hover { transform: scale(1.08); }
         #ai-ball:active { cursor: grabbing; transform: scale(1.14); }
-        .ai-chip-icon { width: 34px; height: 34px; pointer-events: none; filter: drop-shadow(0 0 4px rgba(140,190,255,0.9)); }
+        .ai-chip-icon { width: 42px; height: 42px; pointer-events: none; filter: drop-shadow(0 0 5px rgba(140,190,255,0.95)); z-index: 1; }
 
         #ai-chat-panel {
             position: fixed; right: auto; bottom: auto; width: 350px; height: 500px;
@@ -337,6 +346,7 @@
     <!-- ================= 🌟 AI 助手区 ================= -->
     <!-- 悬浮球 -->
     <div id="ai-ball">
+        <span class="ai-chip-ring"></span>
         <svg class="ai-chip-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
                 <linearGradient id="chipGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
@@ -500,11 +510,12 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
         // ==========================================
         const ball = document.getElementById('ai-ball');
         const panel = document.getElementById('ai-chat-panel');
-        let isDragging = false, hasMoved = false, offsetX, offsetY;
+        let isDragging = false, hasMoved = false, offsetX, offsetY, startX, startY;
 
         ball.addEventListener('mousedown', (e) => {
             isDragging = true;
-            hasMoved = false; 
+            hasMoved = false;
+            startX = e.clientX; startY = e.clientY;   // 记录按下位置，用于区分"点击"和"拖拽"
             const rect = ball.getBoundingClientRect();
             offsetX = e.clientX - rect.left;
             offsetY = e.clientY - rect.top;
@@ -513,8 +524,11 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
 
                document.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
+            // 关键修复：移动距离超过 6px 才算拖拽，轻微手抖仍视为点击（解决点一下弹不出来的问题）
+            const dist = Math.hypot(e.clientX - startX, e.clientY - startY);
+            if (!hasMoved && dist < 6) return;
             hasMoved = true;
-            
+
             let newX = e.clientX - offsetX;
             let newY = e.clientY - offsetY;
             
