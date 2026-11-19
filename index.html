@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>浩海</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <title>浩海 study</title>
     <style>
         /* ========== 全局与基础样式 ========== */
         body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #eef2f6; margin: 0; padding: 0; overflow-x: hidden; }
@@ -32,7 +33,8 @@
             display: flex; flex-direction: column; align-items: center;
             width: 100%;gap: 24px;
         }
-        .welcome-text { color: white; font-size: 32px; font-weight: bold; letter-spacing: 3px; text-shadow: 0 4px 12px rgba(0,0,0,0.6); white-space: nowrap; margin: 0;}
+        .welcome-text { color: white; font-size: 32px; font-weight: bold; letter-spacing: 3px; text-shadow: 0 4px 12px rgba(0,0,0,0.6); white-space: nowrap; margin: 0; display: flex; align-items: center; gap: 12px;}
+        .brand-logo { width: 44px; height: 44px; flex-shrink: 0; }
         
         .search-container { display: flex; align-items: center; background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(10px); border-radius: 50px; padding: 8px 10px; width: 100%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: transform 0.3s ease;}
         .search-container:hover { transform: scale(1.02); }
@@ -223,7 +225,7 @@
     <div id="start-screen">
         <canvas id="sakura-canvas"></canvas>
         <div class="start-header">
-           <div class="welcome-text">浩海<span class="study-text">study</span></div>
+           <div class="welcome-text"><img src="favicon.svg" alt="浩海 logo" class="brand-logo">浩海<span class="study-text">study</span></div>
                         <div class="search-container">
                 <button class="filter-trigger" onclick="toggleFilterPanel()">⚗ 高级筛选</button>
                 <input type="text" id="global-search" class="search-input" placeholder="搜索资料、比赛、美景..." onkeydown="handleSearchEnter(event)">
@@ -277,7 +279,7 @@
 
     <!-- ================= 主界面 ================= -->
     <div id="main-screen">
-       <div class="navbar"><h2>🎓 浩海<span class="study-text">study</span></h2></div>
+       <div class="navbar"><h2 style="display:flex;align-items:center;gap:10px;"><img src="favicon.svg" alt="logo" style="width:30px;height:30px;">浩海<span class="study-text">study</span></h2></div>
         <div class="container">
             <div class="dashboard">
                 <div class="data-item"><h3 id="stat-doc">0</h3><p>共享资料</p></div>
