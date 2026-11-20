@@ -15,6 +15,8 @@
     <title>浩海 study</title>
     <style>
         /* ========== 全局与基础样式 ========== */
+        /* 统一盒模型：修复手机上 width:100vw + 内边距导致搜索框右侧按钮被挤出屏幕 */
+        *, *::before, *::after { box-sizing: border-box; }
         body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #eef2f6; margin: 0; padding: 0; overflow-x: hidden; }
                 /* 新增：模仿图片中 Study 的字体样式 */
         .study-text {
@@ -82,6 +84,14 @@
         .data-item:last-child { border-right: none; }
         .data-item h3 { margin: 0; color: #004085; font-size: 24px; }
         .data-item p { margin: 5px 0 0 0; font-size: 13px; color: #444; font-weight: bold;}
+
+        /* ========== 云端同步状态栏 ========== */
+        .sync-bar { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; background: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.5); border-radius: 10px; padding: 8px 12px; margin-bottom: 12px; font-size: 13px; color: #444; }
+        .sync-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; background: #faad14; box-shadow: 0 0 0 3px rgba(250,173,20,0.18); }
+        .sync-dot.ok { background: #52c41a; box-shadow: 0 0 0 3px rgba(82,196,26,0.18); }
+        .sync-dot.err { background: #ff4d4f; box-shadow: 0 0 0 3px rgba(255,77,79,0.18); }
+        .sync-bar .sync-refresh { margin-left: 4px; border: none; background: #2f6fed; color: #fff; border-radius: 14px; padding: 4px 12px; font-size: 12px; cursor: pointer; white-space: nowrap; min-height: 30px; }
+        .sync-bar .sync-refresh:disabled { opacity: 0.6; cursor: wait; }
         
         .row-layout { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
         .card { background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); padding: 15px; border-radius: 12px; box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07); flex: 1; min-width: 300px; transition: transform 0.3s ease, box-shadow 0.3s ease; }
@@ -223,13 +233,15 @@
             .start-header { gap: 18px; }
             .welcome-text { font-size: 26px; letter-spacing: 2px; gap: 8px; }
             .brand-logo { width: 36px; height: 36px; }
-            .search-container { padding: 6px 8px; }
-            .filter-trigger { padding: 6px 9px; font-size: 12px; margin-right: 6px; }
-            .search-input { font-size: 15px; padding: 8px 12px; min-width: 0; }
+            .search-container { padding: 6px 8px; width: 100%; min-width: 0; overflow: hidden; }
+            .filter-trigger { padding: 8px 10px; font-size: 12px; margin-right: 6px; min-height: 40px; }
+            .search-input { font-size: 15px; padding: 8px 12px; min-width: 0; flex: 1 1 auto; }
             .start-btn { width: 44px; height: 44px; }
             .filter-panel { padding: 16px; }
             .filter-row { flex-direction: column; gap: 10px; }
             .news-card { padding: 10px 12px; }
+            .sync-bar { font-size: 12px; padding: 8px; gap: 6px; }
+            .sync-bar .sync-refresh { padding: 6px 14px; min-height: 36px; font-size: 13px; }
 
             /* --- 主界面 --- */
             .navbar { padding: 12px 14px; }
@@ -353,6 +365,12 @@
     <div id="main-screen">
        <div class="navbar"><h2 style="display:flex;align-items:center;gap:10px;"><img src="favicon.svg" alt="logo" style="width:30px;height:30px;">浩海<span class="study-text">study</span></h2></div>
         <div class="container">
+            <!-- 云端同步状态：让用户随时知道数据是云端真实数据还是本地缓存 -->
+            <div class="sync-bar" id="sync-bar">
+                <span class="sync-dot" id="sync-dot"></span>
+                <span id="sync-text">正在连接云端…</span>
+                <button class="sync-refresh" id="sync-refresh-btn" onclick="refreshCloud()">🔄 刷新</button>
+            </div>
             <div class="dashboard">
                 <div class="data-item"><h3 id="stat-doc">0</h3><p>共享资料</p></div>
                 <div class="data-item"><h3 id="stat-comp">0</h3><p>竞赛活动</p></div>
@@ -979,9 +997,11 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             } catch (_) { return fallback(); }
         }
         // 先读本地缓存，页面立刻能显示；随后 loadFromCloud() 用云端数据覆盖
-        let docs = safeParseArray('myDocs', () => [{ id: 1, name: "李老师的高数期末重点大纲.pdf", type: "老师上传", link: "https://www.baidu.com", _demo: true }]);
-        let competitions = safeParseArray('myComps', () => [{ id: 2, title: "全国大学生数学建模大赛报名链接", link: "https://www.baidu.com", _demo: true }]);
-        let sceneries = safeParseArray('mySceneries', () => []);
+        // 注意：不再内置任何假示例数据，避免云端读取失败时误把示例当成真实数据
+        // 同时过滤掉旧版本缓存里可能残留的示例数据（带 _demo 标记），防止假数据复活
+        let docs = safeParseArray('myDocs', () => []).filter(i => !i._demo);
+        let competitions = safeParseArray('myComps', () => []).filter(i => !i._demo);
+        let sceneries = safeParseArray('mySceneries', () => []).filter(i => !i._demo);
                 // 高级筛选条件
         let filterState = { module: 'all', type: 'all' };
 
@@ -1002,16 +1022,43 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
         }
 
         // 本地缓存：断网或云端没配好时页面照样能显示
+        // 只在数据真的变化时才写入，避免多标签页 storage 事件互相触发形成循环
         function saveLocalBackup() {
-            localStorage.setItem('myDocs', JSON.stringify(docs));
-            localStorage.setItem('myComps', JSON.stringify(competitions));
-            localStorage.setItem('mySceneries', JSON.stringify(sceneries));
+            const pairs = [
+                ['myDocs', docs], ['myComps', competitions], ['mySceneries', sceneries]
+            ];
+            pairs.forEach(([key, value]) => {
+                const str = JSON.stringify(value);
+                if (localStorage.getItem(key) !== str) localStorage.setItem(key, str);
+            });
+        }
+
+        // ---------- 云端同步状态提示 ----------
+        function setSyncStatus(state, text) {
+            const dot = document.getElementById('sync-dot');
+            const label = document.getElementById('sync-text');
+            if (dot) dot.className = 'sync-dot' + (state ? ' ' + state : '');
+            if (label) label.textContent = text;
+        }
+
+        // 给 Supabase 请求加超时：手机网络慢时不会一直卡在“连接中”
+        function withTimeout(promise, ms) {
+            return Promise.race([
+                promise,
+                new Promise((_, reject) => setTimeout(() => reject(new Error('请求超时')), ms))
+            ]);
         }
 
         // 启动时从云端拉取清单，覆盖本地缓存
-        async function loadFromCloud() {
+        async function loadFromCloud(opts) {
+            const silent = opts && opts.silent;               // 后台自动刷新时不打断用户
+            const btn = document.getElementById('sync-refresh-btn');
+            if (!silent) { setSyncStatus('', '正在连接云端…'); if (btn) btn.disabled = true; }
             try {
-                const { data, error } = await supabaseClient.from(TABLE_NAME).select('*').order('id', { ascending: false });
+                const { data, error } = await withTimeout(
+                    supabaseClient.from(TABLE_NAME).select('*').order('id', { ascending: false }),
+                    12000
+                );
                 if (error) throw error;
 
                 if (data.length === 0) {
@@ -1023,7 +1070,9 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
                         ...sceneries.filter(i => !i._demo).map(i => itemToRow('scenery', i))
                     ];
                     if (rows.length) {
-                        const { error: migrateError } = await supabaseClient.from(TABLE_NAME).insert(rows);
+                        const { error: migrateError } = await withTimeout(
+                            supabaseClient.from(TABLE_NAME).insert(rows), 12000
+                        );
                         if (migrateError) throw migrateError;
                     }
                 } else {
@@ -1034,11 +1083,21 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
                 cloudReady = true;
                 saveLocalBackup();
                 renderAll();
+                const total = docs.length + competitions.length + sceneries.length;
+                setSyncStatus('ok', `☁️ 云端已同步 · 共 ${total} 条内容`);
             } catch (e) {
                 console.warn('云端读取失败，暂时使用本地缓存：', e.message);
                 cloudReady = false;
                 renderAll();
+                setSyncStatus('err', '⚠️ 云端未连接，当前显示本地缓存 · 请点刷新重试');
+            } finally {
+                if (btn) btn.disabled = false;
             }
+        }
+
+        // 手动刷新按钮
+        async function refreshCloud() {
+            await loadFromCloud();
         }
 
         // 新增一条到云端；失败也保留本地，不让用户白填
@@ -1170,13 +1229,21 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             let fileUrl = "";
             if (file) {
                 submitBtn.innerText = "⏳ 正在上传中..."; submitBtn.disabled = true;
-               let fileExt = file.name.split('.').pop();
-               let fileName = Date.now() + "." + fileExt;
-                const { data, error } = await supabaseClient.storage.from(BUCKET_NAME).upload(fileName, file);
-                if (error) { alert("上传失败: " + error.message); submitBtn.innerText = "确认发布"; submitBtn.disabled = false; return; }
-                const { data: urlData } = await supabaseClient.storage.from(BUCKET_NAME).getPublicUrl(fileName);
-                fileUrl = urlData.publicUrl;
-                submitBtn.innerText = "确认发布"; submitBtn.disabled = false;
+                try {
+                    let fileExt = file.name.split('.').pop();
+                    let fileName = Date.now() + "." + fileExt;
+                    const { error } = await withTimeout(
+                        supabaseClient.storage.from(BUCKET_NAME).upload(fileName, file), 30000
+                    );
+                    if (error) { alert("上传失败: " + error.message); return; }
+                    const { data: urlData } = supabaseClient.storage.from(BUCKET_NAME).getPublicUrl(fileName);
+                    fileUrl = urlData.publicUrl;
+                } catch (e) {
+                    alert("上传失败：网络超时或不稳定，请检查网络后重试。" + (e.message ? "（" + e.message + "）" : ""));
+                    return;
+                } finally {
+                    submitBtn.innerText = "确认发布"; submitBtn.disabled = false;
+                }
             } else { alert("请先选择要上传的文件！"); return; }
             const newItem = { id: Date.now(), name: name, type: type, link: fileUrl };
             docs.unshift(newItem);
@@ -1192,16 +1259,26 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             let file = fileInput.files[0];
             if (!file) { alert("请先选择一张照片！"); return; }
             submitBtn.innerText = "⏳ 正在上传中..."; submitBtn.disabled = true;
-            // 提取文件后缀（如 .jpg），并生成纯英文数字的文件名
-            let fileExt = file.name.split('.').pop();
-            let fileName = "scenery_" + Date.now() + "." + fileExt;
-            const { data, error } = await supabaseClient.storage.from(BUCKET_NAME).upload(fileName, file);
-            if (error) { alert("照片上传失败: " + error.message); submitBtn.innerText = "确认分享"; submitBtn.disabled = false; return; }
-            const { data: urlData } = await supabaseClient.storage.from(BUCKET_NAME).getPublicUrl(fileName);
-            const newItem = { id: Date.now(), desc: desc, link: urlData.publicUrl };
+            let publicUrl;
+            try {
+                // 提取文件后缀（如 .jpg），并生成纯英文数字的文件名
+                let fileExt = file.name.split('.').pop();
+                let fileName = "scenery_" + Date.now() + "." + fileExt;
+                const { error } = await withTimeout(
+                    supabaseClient.storage.from(BUCKET_NAME).upload(fileName, file), 30000
+                );
+                if (error) { alert("照片上传失败: " + error.message); return; }
+                const { data: urlData } = supabaseClient.storage.from(BUCKET_NAME).getPublicUrl(fileName);
+                publicUrl = urlData.publicUrl;
+            } catch (e) {
+                alert("照片上传失败：网络超时或不稳定，请检查网络后重试。" + (e.message ? "（" + e.message + "）" : ""));
+                return;
+            } finally {
+                submitBtn.innerText = "确认分享"; submitBtn.disabled = false;
+            }
+            const newItem = { id: Date.now(), desc: desc, link: publicUrl };
             sceneries.unshift(newItem);
             fileInput.value = ""; document.getElementById("scenery-desc").value = ""; document.getElementById("scenery-form-container").style.display = "none";
-            submitBtn.innerText = "确认分享"; submitBtn.disabled = false;
             const ok = await insertRow('scenery', newItem);
             alert(ok ? "校园美景分享成功！照片在网盘，清单已存云端" : "照片已存本地缓存，但清单写入云端失败（请先执行 supabase-setup.sql）");
         }
@@ -1227,6 +1304,22 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
 
         renderAll();
         loadFromCloud();   // 启动后用云端清单覆盖本地缓存（首次会自动迁移旧数据）
+
+        // ========== 自动同步：保证手机端和电脑端看到的永远是同一份云端数据 ==========
+        // 1) 手机切回前台 / 电脑切回该标签页时自动刷新（不会打断当前操作）
+        document.addEventListener('visibilitychange', function () {
+            if (!document.hidden) loadFromCloud({ silent: true });
+        });
+        // 2) 窗口重新获得焦点时刷新
+        window.addEventListener('focus', function () {
+            loadFromCloud({ silent: true });
+        });
+        // 3) 同一浏览器多个标签页之间同步（storage 事件只在其他标签页触发，不会自触发循环）
+        window.addEventListener('storage', function (e) {
+            if (['myDocs', 'myComps', 'mySceneries'].indexOf(e.key) !== -1) {
+                loadFromCloud({ silent: true });
+            }
+        });
 
         // ========== 📰 每日新闻（读取 functions/news.ts 提供的 /news 接口，24 小时缓存自动更新） ==========
         async function loadNews() {
