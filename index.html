@@ -347,10 +347,24 @@
         }
     </style>
     
+    <!-- SDK 多 CDN 同步兜底：jsdelivr 挂了立即同步切换到 unpkg，解决"登录组件未加载" -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>window.supabase||document.write('<script src="https://unpkg.com/@supabase/supabase-js@2"><\/script>');</script>
     <!-- Markdown 渲染 + XSS 消毒，思路参考 DeepSeek chat-demo 的 markdown 服务 -->
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+    <script>window.marked||document.write('<script src="https://unpkg.com/marked@12.0.2/marked.min.js"><\/script>');</script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+    <script>window.DOMPurify||document.write('<script src="https://unpkg.com/dompurify@3.2.6/dist/purify.min.js"><\/script>');</script>
+    <!-- 表面防护：拦右键与常见查看源码快捷键（前端无密钥，仅防普通用户） -->
+    <script>
+    document.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+    document.addEventListener('keydown', function(e){
+        if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && ['I','J','C','K'].indexOf(e.key) !== -1) || (e.ctrlKey && (e.key === 'u' || e.key === 'U'))) {
+            e.preventDefault();
+            return false;
+        }
+    });
+    </script>
 </head>
 <body>
 

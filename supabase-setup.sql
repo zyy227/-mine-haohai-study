@@ -115,6 +115,25 @@ $$ language plpgsql security definer;
 grant execute on function public.bump_view(bigint) to anon, authenticated;
 
 -- ============================================================
+-- 4.5 文件存储桶上传权限（解决"照片上传失败: new row violates RLS"）
+--     Storage 底层也是一张带 RLS 的表，需单独放行上传
+-- ============================================================
+drop policy if exists "file_upload" on storage.objects;
+create policy "file_upload" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'file');
+
+drop policy if exists "file_read" on storage.objects;
+create policy "file_read" on storage.objects
+  for select to anon, authenticated
+  using (bucket_id = 'file');
+
+drop policy if exists "file_delete_own" on storage.objects;
+create policy "file_delete_own" on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'file');
+
+-- ============================================================
 -- 5. 管理后台配置提醒
 --    · 管理员邮箱在 Cloudflare Pages 环境变量 ADMIN_EMAIL 中设置
 --    · service_role 密钥在环境变量 SUPABASE_SERVICE_ROLE 中设置
