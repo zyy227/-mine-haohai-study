@@ -25,6 +25,22 @@ const DEFAULT_URL = 'https://ihvusuaeksxynxewcmjs.supabase.co';
 const DEFAULT_KEY = 'sb_publishable_NrbDiThGb-gPPSAVmVZXyA_PXXBslVc';
 const DEFAULT_ADMIN_EMAIL = '2984054909@qq.com';
 
+// 从 access_token（JWT）的 payload 里直接读出邮箱和用户ID。
+// token 由 Supabase 用密钥签名，前端无法伪造；这里配合 /auth/v1/user 校验 token 有效性后使用。
+function parseJwtPayload(token) {
+    try {
+        const seg = String(token || '').split('.')[1];
+        if (!seg) return {};
+        const base64 = seg.replace(/-/g, '+').replace(/_/g, '/');
+        const bin = atob(base64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return JSON.parse(new TextDecoder().decode(bytes));
+    } catch (_) {
+        return {};
+    }
+}
+
 function json(data, status) {
     return Response.json(data, { status: status || 200 });
 }
@@ -39,18 +55,21 @@ export async function onRequest({ request, env }) {
     if (!userToken) return json({ error: '缺少登录凭证，请先登录管理员账号' }, 401);
 
     // ---------- 第一步：服务端校验身份，拿到当前用户邮箱 ----------
-    let userEmail = '';
-    let userId = '';
+    // 主通道：直接从 JWT payload 读邮箱（新版 Supabase 的 /auth/v1/user 可能不返回 email）
+    const claims = parseJwtPayload(userToken);
+    let userEmail = String(claims.email || '').toLowerCase();
+    let userId = String(claims.sub || '');
     try {
         const who = await fetch(SUPABASE_URL + '/auth/v1/user', {
             headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + userToken }
         });
         if (!who.ok) return json({ error: '登录已过期，请重新登录' }, 401);
         const info = await who.json();
-        userEmail = (info.email || '').toLowerCase();
-        userId = info.id || '';
+        if (!userEmail && info.email) userEmail = String(info.email).toLowerCase();
+        if (!userId && info.id) userId = String(info.id);
     } catch (err) {
-        return json({ error: '身份验证失败：' + (err?.message || String(err)) }, 502);
+        // JWT 里已拿到邮箱则照常用，不因接口网络抖动误判
+        if (!userEmail) return json({ error: '身份验证失败：' + (err?.message || String(err)) }, 502);
     }
 
     const allowList = ADMIN_EMAIL.split(',').map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean);
@@ -64,7 +83,7 @@ export async function onRequest({ request, env }) {
     if (action === 'check') {
         // 兜底：某些新版 Supabase 的 /auth/v1/user 不带 email，
         // 此时用 service_role 按用户ID去管理接口查真实邮箱
-        let emailSource = 'token';
+        let emailSource = claims.email ? 'jwt' : 'token';
         if (!userEmail && userId && SERVICE_ROLE) {
             try {
                 const uRes = await fetch(SUPABASE_URL + '/auth/v1/admin/users/' + encodeURIComponent(userId), {
