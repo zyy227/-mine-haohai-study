@@ -54,17 +54,38 @@ export async function onRequest({ request, env }) {
     }
 
     const allowList = ADMIN_EMAIL.split(',').map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean);
-    const isAdmin = !!userEmail && allowList.indexOf(userEmail) !== -1;
 
-    // check 操作：只回答是不是管理员，不需要 service_role
+    // check 操作：回答是不是管理员
     const url = new URL(request.url);
     const action = request.method.toUpperCase() === 'POST'
         ? (await safeBody(request)).action
         : (url.searchParams.get('action') || '');
 
     if (action === 'check') {
-        return json({ isAdmin: isAdmin, email: userEmail });
+        // 兜底：某些新版 Supabase 的 /auth/v1/user 不带 email，
+        // 此时用 service_role 按用户ID去管理接口查真实邮箱
+        let emailSource = 'token';
+        if (!userEmail && userId && SERVICE_ROLE) {
+            try {
+                const uRes = await fetch(SUPABASE_URL + '/auth/v1/admin/users/' + encodeURIComponent(userId), {
+                    headers: { 'apikey': SERVICE_ROLE, 'Authorization': 'Bearer ' + SERVICE_ROLE }
+                });
+                if (uRes.ok) {
+                    const u = await uRes.json();
+                    userEmail = (u.email || '').toLowerCase();
+                    emailSource = 'admin-api';
+                }
+            } catch (_) {}
+        }
+        const isAdmin = !!userEmail && allowList.indexOf(userEmail) !== -1;
+        return json({
+            isAdmin: isAdmin,
+            email: userEmail,
+            debug: { hasToken: !!userToken, hasUserId: !!userId, hasServiceRole: !!SERVICE_ROLE, emailSource: emailSource, allowList: allowList }
+        });
     }
+
+    const isAdmin = !!userEmail && allowList.indexOf(userEmail) !== -1;
 
     if (!isAdmin) return json({ error: '无管理员权限' }, 403);
     if (!SERVICE_ROLE) {
