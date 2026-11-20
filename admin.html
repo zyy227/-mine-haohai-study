@@ -222,7 +222,17 @@
             try { check = await api('check'); }
             catch (e) { showGate(); return; }
             if (!check.isAdmin) {
-                document.getElementById('gate').querySelector('p').textContent = '当前账号（' + esc(check.email || '') + '）不是管理员，无权访问此页面。';
+                const d = check.debug || {};
+                let reason;
+                if (!check.email) {
+                    reason = '没读到账号邮箱';
+                    if (!d.hasServiceRole) reason += '（服务端未配置 SUPABASE_SERVICE_ROLE）';
+                    else if (!d.hasUserId) reason += '（登录凭证无效）';
+                } else {
+                    reason = '邮箱 ' + check.email + ' 不在管理员白名单';
+                }
+                document.getElementById('gate').querySelector('p').textContent =
+                    '无权访问：' + reason + '。请用管理员邮箱 2984054909@qq.com 登录。';
                 showGate();
                 return;
             }
