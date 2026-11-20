@@ -81,7 +81,7 @@ export async function onRequest({ request, env }) {
         return json({
             isAdmin: isAdmin,
             email: userEmail,
-            debug: { hasToken: !!userToken, hasUserId: !!userId, hasServiceRole: !!SERVICE_ROLE, emailSource: emailSource, allowList: allowList }
+            debug: { hasToken: !!userToken, hasUserId: !!userId, hasServiceRole: !!SERVICE_ROLE, emailSource: emailSource, allowList: allowList, envKeys: Object.keys(env || {}).filter(function (k) { return /supabase|service|admin|key|role/i.test(k); }).sort() }
         });
     }
 

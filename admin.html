@@ -231,8 +231,11 @@
                 } else {
                     reason = '邮箱 ' + check.email + ' 不在管理员白名单';
                 }
-                document.getElementById('gate').querySelector('p').textContent =
-                    '无权访问：' + reason + '。请用管理员邮箱 2984054909@qq.com 登录。';
+                let detail = '无权访问：' + reason + '。请用管理员邮箱 2984054909@qq.com 登录。';
+                if (Array.isArray(d.envKeys)) {
+                    detail += ' [后端已读变量: ' + (d.envKeys.length ? d.envKeys.join(', ') : '无') + ']';
+                }
+                document.getElementById('gate').querySelector('p').textContent = detail;
                 showGate();
                 return;
             }
