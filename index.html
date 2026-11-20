@@ -45,6 +45,10 @@
         }
         .welcome-text { color: white; font-size: 32px; font-weight: bold; letter-spacing: 3px; text-shadow: 0 4px 12px rgba(0,0,0,0.6); white-space: nowrap; margin: 0; display: flex; align-items: center; gap: 12px;}
         .brand-logo { width: 44px; height: 44px; flex-shrink: 0; }
+        .start-auth { display: flex; align-items: center; gap: 10px; }
+        .start-auth .auth-btn { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.5); }
+        .start-auth .auth-btn.primary { background: #ffd76a; color: #7a4b00; border: none; }
+        .start-auth .auth-user { text-shadow: 0 2px 6px rgba(0,0,0,.6); }
         
         .search-container { display: flex; align-items: center; background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(10px); border-radius: 50px; padding: 8px 10px; width: 100%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: transform 0.3s ease;}
         .search-container:hover { transform: scale(1.02); }
@@ -92,7 +96,39 @@
         .sync-dot.err { background: #ff4d4f; box-shadow: 0 0 0 3px rgba(255,77,79,0.18); }
         .sync-bar .sync-refresh { margin-left: 4px; border: none; background: #2f6fed; color: #fff; border-radius: 14px; padding: 4px 12px; font-size: 12px; cursor: pointer; white-space: nowrap; min-height: 30px; }
         .sync-bar .sync-refresh:disabled { opacity: 0.6; cursor: wait; }
-        
+
+        /* ========== 登录 / 注册 / 用户状态 ========== */
+        .auth-area { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+        .auth-btn { border: none; background: rgba(255,255,255,0.22); color: #fff; padding: 7px 14px; border-radius: 18px; font-size: 13px; cursor: pointer; font-weight: bold; transition: background .2s, transform .2s; white-space: nowrap; }
+        .auth-btn:hover { background: rgba(255,255,255,0.34); transform: translateY(-1px); }
+        .auth-btn.primary { background: #ffd76a; color: #7a4b00; }
+        .auth-btn.primary:hover { background: #ffe08a; }
+        .auth-user { display: flex; align-items: center; gap: 8px; color: #fff; font-size: 13px; }
+        .auth-avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg,#7f77dd,#534ab7); display: inline-flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; }
+        .auth-email { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .guest-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.2); color: #fff; border-radius: 14px; padding: 5px 12px; font-size: 12px; }
+
+        /* 登录弹窗 */
+        #auth-modal { display: none; position: fixed; inset: 0; z-index: 10002; background: rgba(0,0,0,.5); align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
+        .auth-card { background: #fff; border-radius: 16px; width: 100%; max-width: 400px; padding: 26px 24px; box-shadow: 0 20px 60px rgba(0,0,0,.3); position: relative; animation: popIn .3s ease; }
+        .auth-tabs { display: flex; gap: 6px; background: #f0f2f7; border-radius: 10px; padding: 4px; margin-bottom: 20px; }
+        .auth-tab { flex: 1; border: none; background: transparent; padding: 9px; border-radius: 8px; font-size: 14px; font-weight: bold; color: #666; cursor: pointer; transition: all .2s; }
+        .auth-tab.active { background: #fff; color: #2f6fed; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+        .auth-field { margin-bottom: 14px; }
+        .auth-field label { display: block; font-size: 13px; color: #444; margin-bottom: 6px; font-weight: bold; }
+        .auth-field input { width: 100%; box-sizing: border-box; padding: 11px 12px; border: 1px solid #d5dae3; border-radius: 8px; font-size: 14px; transition: border-color .2s; }
+        .auth-field input:focus { outline: none; border-color: #2f6fed; }
+        .auth-hint { font-size: 12px; color: #888; margin: -6px 0 14px; line-height: 1.5; }
+        .auth-msg { min-height: 20px; font-size: 13px; margin-bottom: 8px; line-height: 1.5; }
+        .auth-msg.err { color: #d4380d; }
+        .auth-msg.ok { color: #389e0d; }
+        .auth-submit { width: 100%; padding: 12px; border: none; border-radius: 9px; background: linear-gradient(135deg,#5b8def,#2f6fed); color: #fff; font-size: 15px; font-weight: bold; cursor: pointer; transition: opacity .2s; }
+        .auth-submit:disabled { opacity: .6; cursor: wait; }
+        .auth-close { position: absolute; top: 12px; right: 14px; border: none; background: none; font-size: 24px; color: #999; cursor: pointer; line-height: 1; }
+        .edit-btn { background: #2f6fed; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; margin-right: 6px; opacity: .85; }
+        .owner-tag { font-size: 11px; color: #888; margin-right: 8px; }
+        .guest-lock { font-size: 12px; color: #b26a00; background: #fffbe6; border: 1px solid #ffe58f; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+
         .row-layout { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
         .card { background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); padding: 15px; border-radius: 12px; box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07); flex: 1; min-width: 300px; transition: transform 0.3s ease, box-shadow 0.3s ease; }
         .card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15); }
@@ -335,11 +371,38 @@
         </div>
     </div>
 
+    <!-- ================= 登录 / 注册弹窗 ================= -->
+    <div id="auth-modal">
+        <div class="auth-card">
+            <button class="auth-close" onclick="closeAuthModal()" aria-label="关闭">&times;</button>
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">🔑 登录</button>
+                <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">📝 注册</button>
+            </div>
+            <div class="auth-field">
+                <label for="auth-email">邮箱</label>
+                <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email">
+            </div>
+            <div class="auth-field">
+                <label for="auth-password">密码</label>
+                <input type="password" id="auth-password" placeholder="至少6位，含字母和数字" autocomplete="current-password">
+            </div>
+            <div class="auth-field" id="auth-confirm-field" style="display:none;">
+                <label for="auth-confirm">确认密码</label>
+                <input type="password" id="auth-confirm" placeholder="再输入一次密码" autocomplete="new-password">
+            </div>
+            <div class="auth-hint" id="auth-hint">密码需至少 6 位，且同时包含字母和数字。</div>
+            <div class="auth-msg" id="auth-msg"></div>
+            <button class="auth-submit" id="auth-submit" onclick="submitAuth()">登录</button>
+        </div>
+    </div>
+
     <!-- ================= 开始界面 ================= -->
     <div id="start-screen">
         <canvas id="sakura-canvas"></canvas>
         <div class="start-header">
            <div class="welcome-text"><img src="favicon.svg" alt="浩海 logo" class="brand-logo">浩海<span class="study-text">study</span></div>
+           <div class="start-auth" id="start-auth"></div>
                         <div class="search-container">
                 <button class="filter-trigger" onclick="toggleFilterPanel()">⚗ 高级筛选</button>
                 <input type="text" id="global-search" class="search-input" placeholder="搜索资料、比赛、美景..." onkeydown="handleSearchEnter(event)">
@@ -393,7 +456,10 @@
 
     <!-- ================= 主界面 ================= -->
     <div id="main-screen">
-       <div class="navbar"><h2 style="display:flex;align-items:center;gap:10px;"><img src="favicon.svg" alt="logo" style="width:30px;height:30px;">浩海<span class="study-text">study</span></h2></div>
+       <div class="navbar">
+           <h2 style="display:flex;align-items:center;gap:10px;"><img src="favicon.svg" alt="logo" style="width:30px;height:30px;">浩海<span class="study-text">study</span></h2>
+           <div class="auth-area" id="auth-area"></div>
+       </div>
         <div class="container">
             <!-- 云端同步状态：让用户随时知道数据是云端真实数据还是本地缓存 -->
             <div class="sync-bar" id="sync-bar">
@@ -589,11 +655,20 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
                     chain.order = () => chain;
                     chain.eq = () => chain;
                     chain.select = () => chain;
+                    chain.update = () => chain;
                     return {
                         select: () => chain,
                         insert: () => Promise.resolve({ error: SDK_ERR }),
+                        update: () => chain,
                         delete: () => chain
                     };
+                },
+                auth: {
+                    getSession: () => Promise.resolve({ data: { session: null } }),
+                    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: function () {} } } }),
+                    signOut: () => Promise.resolve({ error: null }),
+                    signUp: () => Promise.resolve({ data: { session: null }, error: SDK_ERR }),
+                    signInWithPassword: () => Promise.resolve({ data: { session: null }, error: SDK_ERR })
                 },
                 storage: {
                     from: () => ({
@@ -602,6 +677,244 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
                     })
                 }
             };
+
+        // ==========================================================
+        // 🔐 用户认证与权限（注册 / 登录 / 游客 / 归属隔离）
+        //   · 登录用 Supabase Auth（邮箱 + 密码）
+        //   · currentUser 为 null 表示游客；否则 { id, email }
+        //   · 权限判断统一走 canEdit(item)：只有登录且是发布者本人才能编辑/删除
+        // ==========================================================
+        let currentUser = null;   // { id, email } 或 null（游客）
+        let currentToken = '';    // 当前登录用户的 access_token，用于带给 /api/items 让 RLS 识别身份
+
+        // 安全取 token：SDK 没加载时返回空串（视为游客）
+        async function getAccessToken() {
+            try {
+                if (!supabaseClient || !supabaseClient.auth) return '';
+                const { data } = await supabaseClient.auth.getSession();
+                return (data && data.session && data.session.access_token) || '';
+            } catch (_) { return ''; }
+        }
+
+        // 统一生成 /api/items 的请求头（带用户 token）
+        async function authHeaders() {
+            const token = await getAccessToken();
+            return token ? { 'X-User-Token': token } : {};
+        }
+
+        // 权限判断：能否编辑/删除某条（仅登录 + 本人发布）
+        function canEdit(item) {
+            if (!currentUser || !item) return false;
+            const owner = item.owner_id || item.ownerId || item.owner || '';
+            return String(owner) === String(currentUser.id);
+        }
+
+        // 是不是游客
+        function isGuest() { return !currentUser; }
+
+        // 弹窗控制
+        let authTab = 'login';
+        function openAuthModal(tab) {
+            authTab = tab || 'login';
+            switchAuthTab(authTab);
+            const m = document.getElementById('auth-modal');
+            if (m) m.style.display = 'flex';
+            setAuthMsg('');
+        }
+        function closeAuthModal() {
+            const m = document.getElementById('auth-modal');
+            if (m) m.style.display = 'none';
+        }
+        function switchAuthTab(tab) {
+            authTab = tab;
+            const tl = document.getElementById('tab-login'), tr = document.getElementById('tab-register');
+            if (tl) tl.classList.toggle('active', tab === 'login');
+            if (tr) tr.classList.toggle('active', tab === 'register');
+            const confirmField = document.getElementById('auth-confirm-field');
+            if (confirmField) confirmField.style.display = (tab === 'register') ? 'block' : 'none';
+            const hint = document.getElementById('auth-hint');
+            if (hint) hint.textContent = (tab === 'register')
+                ? '密码至少 6 位，且同时包含字母和数字；注册需填写邮箱并二次确认密码。'
+                : '密码需至少 6 位，且同时包含字母和数字。';
+            const submit = document.getElementById('auth-submit');
+            if (submit) submit.textContent = (tab === 'register') ? '注册并登录' : '登录';
+            setAuthMsg('');
+        }
+        function setAuthMsg(text, type) {
+            const el = document.getElementById('auth-msg');
+            if (!el) return;
+            el.textContent = text || '';
+            el.className = 'auth-msg' + (type ? ' ' + type : '');
+        }
+
+        // 校验密码规则：字母 + 数字，至少 6 位
+        function validPassword(pw) {
+            return typeof pw === 'string' && pw.length >= 6 && /[A-Za-z]/.test(pw) && /\d/.test(pw);
+        }
+
+        // 把 Supabase 的错误信息翻译成中文
+        function friendlyAuthError(msg) {
+            const m = String(msg || '');
+            if (/invalid login credentials/i.test(m)) return '邮箱或密码错误，请检查后重试。';
+            if (/email not confirmed/i.test(m)) return '邮箱还未验证，请先去邮箱点击验证链接（或在后台关闭邮箱验证）。';
+            if (/user already registered/i.test(m)) return '该邮箱已注册，请直接登录。';
+            if (/password should be at least/i.test(m)) return '密码太短了，至少需要 6 位。';
+            if (/unable to validate email/i.test(m)) return '邮箱格式不正确。';
+            if (/rate limit|too many/i.test(m)) return '操作太频繁了，请稍后再试。';
+            if (/network|fetch|failed/i.test(m)) return '网络连接失败，请检查网络后重试。';
+            if (/SDK 未加载/i.test(m)) return '登录组件未加载，请刷新页面后重试。';
+            return m || '操作失败，请重试。';
+        }
+
+        // 提交登录 / 注册
+        async function submitAuth() {
+            const email = (document.getElementById('auth-email').value || '').trim();
+            const password = document.getElementById('auth-password').value || '';
+            const confirm = (document.getElementById('auth-confirm').value || '');
+            const submitBtn = document.getElementById('auth-submit');
+
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setAuthMsg('请输入正确的邮箱地址。', 'err'); return; }
+            if (!validPassword(password)) { setAuthMsg('密码需至少 6 位，且同时包含字母和数字。', 'err'); return; }
+            if (authTab === 'register' && password !== confirm) { setAuthMsg('两次输入的密码不一致，请重新输入。', 'err'); return; }
+
+            if (!supabaseClient || !supabaseClient.auth) {
+                setAuthMsg('登录功能暂不可用（Supabase 组件未加载），请刷新页面重试。', 'err'); return;
+            }
+
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '处理中…'; }
+            setAuthMsg('');
+            try {
+                if (authTab === 'register') {
+                    const { data, error } = await supabaseClient.auth.signUp({ email, password });
+                    if (error) throw error;
+                    // 若后台开启邮箱验证，此时没有 session，提示去验证
+                    if (!data.session) {
+                        setAuthMsg('注册成功！请前往邮箱点击验证链接完成验证，之后即可登录。', 'ok');
+                        return;
+                    }
+                } else {
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                    if (error) throw error;
+                    if (!data.session) throw new Error('登录未返回会话，请重试。');
+                }
+                setAuthMsg(authTab === 'register' ? '注册成功，欢迎你！' : '登录成功，欢迎回来！', 'ok');
+                closeAuthModal();
+                renderAuthUI();
+                await applySession();
+                await loadFromCloud();
+            } catch (err) {
+                setAuthMsg(friendlyAuthError(err && err.message), 'err');
+            } finally {
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = (authTab === 'register') ? '注册并登录' : '登录'; }
+            }
+        }
+
+        // 退出登录
+        async function logout() {
+            try { if (supabaseClient && supabaseClient.auth) await supabaseClient.auth.signOut(); }
+            catch (_) {}
+            currentUser = null; currentToken = '';
+            renderAuthUI();
+            renderAll();
+            await loadFromCloud();
+            alert('已退出登录，当前为游客模式（只能浏览）。');
+        }
+
+        // 从会话同步当前用户状态
+        async function applySession() {
+            try {
+                if (!supabaseClient || !supabaseClient.auth) { currentUser = null; currentToken = ''; return; }
+                const { data } = await supabaseClient.auth.getSession();
+                const session = data && data.session;
+                if (session && session.user) {
+                    currentUser = { id: session.user.id, email: session.user.email || '' };
+                    currentToken = session.access_token || '';
+                } else {
+                    currentUser = null; currentToken = '';
+                }
+            } catch (_) { currentUser = null; currentToken = ''; }
+            renderAuthUI();
+            renderAll();
+        }
+
+        // 渲染导航栏 / 开始界面的用户状态
+        function renderAuthUI() {
+            const area = document.getElementById('auth-area');
+            const start = document.getElementById('start-auth');
+            let navHtml, startHtml;
+            if (currentUser) {
+                const initial = (currentUser.email || 'U').charAt(0).toUpperCase();
+                const short = currentUser.email || '已登录';
+                navHtml = '<div class="auth-user"><span class="auth-avatar">' + escapeHtml(initial) + '</span>' +
+                          '<span class="auth-email" title="' + escapeHtml(short) + '">' + escapeHtml(short) + '</span>' +
+                          '<button class="auth-btn" onclick="logout()">退出</button></div>';
+                startHtml = '<div class="auth-user"><span class="auth-avatar">' + escapeHtml(initial) + '</span>' +
+                            '<span>' + escapeHtml(short) + '</span>' +
+                            '<button class="auth-btn" onclick="logout()">退出</button></div>';
+            } else {
+                navHtml = '<button class="auth-btn" onclick="openAuthModal(\'login\')">🔑 登录</button>' +
+                          '<button class="auth-btn primary" onclick="openAuthModal(\'register\')">📝 注册</button>' +
+                          '<span class="guest-badge">👀 游客</span>';
+                startHtml = '<button class="auth-btn" onclick="openAuthModal(\'login\')">🔑 登录</button>' +
+                            '<button class="auth-btn primary" onclick="openAuthModal(\'register\')">📝 注册</button>' +
+                            '<span class="guest-badge">👀 游客浏览</span>';
+            }
+            if (area) area.innerHTML = navHtml;
+            if (start) start.innerHTML = startHtml;
+
+            // 游客：隐藏上传/发布/分享按钮及草稿入口（只读），登录用户恢复显示
+            document.querySelectorAll('.add-btn, .draft-entry').forEach(function (b) {
+                b.style.display = currentUser ? '' : 'none';
+            });
+            // 游客提示条（放在同步栏下方）
+            document.querySelectorAll('.guest-lock').forEach(function (n) { n.remove(); });
+            if (!currentUser) {
+                const syncBar = document.getElementById('sync-bar');
+                if (syncBar) {
+                    const tip = document.createElement('div');
+                    tip.className = 'guest-lock';
+                    tip.innerHTML = '👀 当前为游客模式，仅可浏览内容。登录后可上传、编辑和删除自己发布的内容。';
+                    syncBar.insertAdjacentElement('afterend', tip);
+                }
+            }
+        }
+
+        // 需要登录才能操作时调用；游客则弹登录框并返回 false
+        function requireLogin(actionName) {
+            if (currentUser) return true;
+            if (actionName) {
+                if (confirm('「' + actionName + '」需要先登录，是否现在登录？')) openAuthModal('register');
+            } else {
+                openAuthModal('register');
+            }
+            return false;
+        }
+
+        // 登录弹窗点遮罩关闭
+        document.getElementById('auth-modal').addEventListener('click', function (e) {
+            if (e.target === this) closeAuthModal();
+        });
+        // 密码框回车提交
+        ['auth-email', 'auth-password', 'auth-confirm'].forEach(function (id) {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('keydown', function (e) { if (e.key === 'Enter') submitAuth(); });
+        });
+
+        // 监听登录状态变化（多标签页 / token 刷新时保持同步）
+        try {
+            if (supabaseClient && supabaseClient.auth && supabaseClient.auth.onAuthStateChange) {
+                supabaseClient.auth.onAuthStateChange(function (_event, session) {
+                    if (session && session.user) {
+                        currentUser = { id: session.user.id, email: session.user.email || '' };
+                        currentToken = session.access_token || '';
+                    } else {
+                        currentUser = null; currentToken = '';
+                    }
+                    renderAuthUI();
+                    renderAll();
+                });
+            }
+        } catch (_) {}
 
         // ---------- 1. 页面切换与搜索逻辑 ----------
         window.onpopstate = function(event) {
@@ -1097,19 +1410,26 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
         let filterState = { module: 'all', type: 'all' };
 
 
-        // 云端一行 → 页面里的数据结构
+        // 云端一行 → 页面里的数据结构（带上归属信息，供权限判断）
         function rowToItem(row) {
             const id = Number(row.id);
-            if (row.kind === 'doc') return { id, name: row.name || '', type: row.type || '老师上传', link: row.link || '' };
-            if (row.kind === 'comp') return { id, title: row.name || '', link: row.link || '' };
-            return { id, desc: row.desc_text || '', link: row.link || '' };
+            const owner_id = row.owner_id || '';
+            const owner_email = row.owner_email || '';
+            if (row.kind === 'doc') return { id, name: row.name || '', type: row.type || '老师上传', link: row.link || '', owner_id, owner_email };
+            if (row.kind === 'comp') return { id, title: row.name || '', link: row.link || '', owner_id, owner_email };
+            return { id, desc: row.desc_text || '', link: row.link || '', owner_id, owner_email };
         }
 
-        // 页面里的数据结构 → 云端一行
+        // 页面里的数据结构 → 云端一行（带上归属信息；平台内容 owner 留空）
         function itemToRow(kind, item) {
-            if (kind === 'doc') return { id: item.id, kind, name: item.name, type: item.type, link: item.link || '' };
-            if (kind === 'comp') return { id: item.id, kind, name: item.title, link: item.link || '' };
-            return { id: item.id, kind, desc_text: item.desc || '', link: item.link || '' };
+            const owner_id = item.owner_id || (currentUser ? currentUser.id : null);
+            const owner_email = item.owner_email || (currentUser ? currentUser.email : null);
+            let row;
+            if (kind === 'doc') row = { id: item.id, kind, name: item.name, type: item.type, link: item.link || '' };
+            else if (kind === 'comp') row = { id: item.id, kind, name: item.title, link: item.link || '' };
+            else row = { id: item.id, kind, desc_text: item.desc || '', link: item.link || '' };
+            row.owner_id = owner_id; row.owner_email = owner_email;
+            return row;
         }
 
         // 本地缓存：断网或云端没配好时页面照样能显示
@@ -1143,7 +1463,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
         // 读取云端清单：优先走本站 /api/items 中转（手机 4G 更稳），失败再回退直连 supabase.co
         async function fetchRows() {
             try {
-                const res = await withTimeout(fetch('/api/items'), 12000);
+                const res = await withTimeout(fetch('/api/items', { headers: await authHeaders() }), 12000);
                 if (!res.ok) throw new Error('中转接口 HTTP ' + res.status);
                 const json = await res.json();
                 if (!Array.isArray(json.items)) throw new Error('中转接口返回格式错误');
@@ -1168,18 +1488,23 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
                 const data = await fetchRows();
 
                 if (data.length === 0) {
-                    // 云端为空：把本地已有数据一次性搬上去（首次使用自动迁移，不丢旧数据）
-                    // 排除默认示例数据，不把假数据写进真实数据库
-                    const rows = [
-                        ...docs.filter(i => !i._demo).map(i => itemToRow('doc', i)),
-                        ...competitions.filter(i => !i._demo).map(i => itemToRow('comp', i)),
-                        ...sceneries.filter(i => !i._demo).map(i => itemToRow('scenery', i))
-                    ];
-                    if (rows.length) {
-                        const { error: migrateError } = await withTimeout(
-                            supabaseClient.from(TABLE_NAME).insert(rows), 12000
-                        );
-                        if (migrateError) throw migrateError;
+                    // 云端为空：仅「登录用户」可把自己的本地数据一次性搬上去。
+                    // 游客不能写云端（RLS 也会拒绝），避免冒名/假数据入库。
+                    if (currentUser) {
+                        const rows = [
+                            ...docs.filter(i => !i._demo).map(i => itemToRow('doc', i)),
+                            ...competitions.filter(i => !i._demo).map(i => itemToRow('comp', i)),
+                            ...sceneries.filter(i => !i._demo).map(i => itemToRow('scenery', i))
+                        ];
+                        if (rows.length) {
+                            const token = await getAccessToken();
+                            const res = await withTimeout(fetch('/api/items', {
+                                method: 'POST',
+                                headers: Object.assign({ 'Content-Type': 'application/json' }, token ? { 'X-User-Token': token } : {}),
+                                body: JSON.stringify(rows)
+                            }), 12000);
+                            if (!res.ok) throw new Error('迁移数据上传失败 HTTP ' + res.status);
+                        }
                     }
                 } else {
                     docs = data.filter(r => r.kind === 'doc').map(rowToItem);
@@ -1213,7 +1538,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             try {
                 const res = await withTimeout(fetch('/api/items', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: Object.assign({ 'Content-Type': 'application/json' }, await authHeaders()),
                     body: JSON.stringify(row)
                 }), 12000);
                 if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -1229,12 +1554,35 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             return ok;
         }
 
+        // 修改云端一条（仅本人）：优先中转 PATCH，RLS 保证只能改自己的
+        async function updateRow(kind, id, patch) {
+            let ok = false;
+            try {
+                const res = await withTimeout(fetch('/api/items?id=' + encodeURIComponent(id), {
+                    method: 'PATCH',
+                    headers: Object.assign({ 'Content-Type': 'application/json' }, await authHeaders()),
+                    body: JSON.stringify(patch)
+                }), 12000);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                ok = true;
+            } catch (e) {
+                const { error } = await supabaseClient.from(TABLE_NAME).update(patch).eq('id', id).eq('kind', kind);
+                if (error) console.error('云端修改失败：', error.message);
+                ok = !error;
+            }
+            saveLocalBackup();
+            renderAll();
+            return ok;
+        }
+
         // 从云端删除一条：同样优先中转，失败回退直连
         async function deleteRow(kind, id) {
             let ok = false;
             try {
                 const res = await withTimeout(
-                    fetch('/api/items?id=' + encodeURIComponent(id) + '&kind=' + encodeURIComponent(kind), { method: 'DELETE' }),
+                    fetch('/api/items?id=' + encodeURIComponent(id) + '&kind=' + encodeURIComponent(kind), {
+                        method: 'DELETE', headers: await authHeaders()
+                    }),
                     12000
                 );
                 if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -1466,6 +1814,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
 
         // 发布草稿：把它变成云端公共库里的一条，所有人可见
         async function publishDraftById(id) {
+            if (!requireLogin('发布内容')) return;
             const d = drafts.find(x => x.id === id);
             if (!d) return;
             const registry = ACTION_REGISTRY[d.type];
@@ -1516,6 +1865,26 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             form.style.display = (form.style.display === "block") ? "none" : "block";
         }
 
+        // 点击上传表单「以外」的任意区域就关闭它（含切换模块、点空白、点别的按钮）
+        // 判断依据：点在三个表单容器内部、或点在触发按钮上时，不关闭
+        document.addEventListener('click', function (e) {
+            const t = e.target;
+            const forms = ['upload-form-container', 'comp-form-container', 'scenery-form-container']
+                .map(id => document.getElementById(id)).filter(Boolean);
+            const insideForm = forms.some(f => f.style.display === 'block' && f.contains(t));
+            const onTrigger = t.closest && t.closest('.add-btn');
+            if (!insideForm && !onTrigger) {
+                forms.forEach(f => { f.style.display = 'none'; });
+            }
+            // 高级筛选面板同理：点面板外关闭
+            const fp = document.getElementById('filter-panel');
+            if (fp && fp.style.display === 'block') {
+                const insidePanel = fp.contains(t);
+                const onFilterTrigger = (t.closest && t.closest('.filter-trigger'));
+                if (!insidePanel && !onFilterTrigger) fp.style.display = 'none';
+            }
+        });
+
         document.getElementById('doc-file').addEventListener('change', function(e) {
             let file = e.target.files[0];
             if(file) { document.getElementById('doc-name').value = file.name; }
@@ -1530,8 +1899,12 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
                 const id = Number(item.id) || 0;
                 const tagStyle = item.type === "老师上传" ? "background:#d1ecf1; color:#0c5460;" : "background:#e2e3e5; color:#383d41;";
                 let div = document.createElement("div"); div.className = "item";
+                const ownerText = item.owner_email ? '<span class="owner-tag">by ' + escapeHtml(item.owner_email.split('@')[0]) + '</span>' : '';
+                const manageBtns = canEdit(item)
+                    ? '<button class="edit-btn" onclick="editDoc(' + id + ')">编辑</button><button class="del-btn" onclick="deleteDoc(' + id + ')">删除</button>'
+                    : (currentUser ? '<span class="owner-tag">他人/平台发布</span>' : '');
                 // 所有来自云端/用户输入的数据一律转义，杜绝存储型 XSS
-                div.innerHTML = `<a href="javascript:void(0)" onclick="openDocDetail(${id})">${escapeHtml(item.name)}</a><div><span class="tag" style="${tagStyle}">${escapeHtml(item.type)}</span><button class="del-btn" onclick="deleteDoc(${id})">删除</button></div>`;
+                div.innerHTML = `<a href="javascript:void(0)" onclick="openDocDetail(${id})">${escapeHtml(item.name)}</a><div>${ownerText}<span class="tag" style="${tagStyle}">${escapeHtml(item.type)}</span>${manageBtns}</div>`;
                 docContainer.appendChild(div);
             });
 
@@ -1540,7 +1913,13 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             competitions.forEach(item => {
                 const id = Number(item.id) || 0;
                 let div = document.createElement("div"); div.className = "item";
-                div.innerHTML = `<a href="${escapeHtml(safeUrl(item.link))}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title)}</a><div><span class="tag" style="background:#d4edda; color:#155724;">官方发布</span><button class="del-btn" onclick="deleteComp(${id})">删除</button></div>`;
+                const ownerText = item.owner_email ? '<span class="owner-tag">by ' + escapeHtml(item.owner_email.split('@')[0]) + '</span>' : '';
+                const tagText = item.owner_id ? '用户发布' : '官方发布';
+                const tagColor = item.owner_id ? "background:#e2e3e5; color:#383d41;" : "background:#d4edda; color:#155724;";
+                const manageBtns = canEdit(item)
+                    ? '<button class="edit-btn" onclick="editComp(' + id + ')">编辑</button><button class="del-btn" onclick="deleteComp(' + id + ')">删除</button>'
+                    : (currentUser ? '<span class="owner-tag">他人/平台发布</span>' : '');
+                div.innerHTML = `<a href="${escapeHtml(safeUrl(item.link))}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title)}</a><div>${ownerText}<span class="tag" style="${tagColor}">${tagText}</span>${manageBtns}</div>`;
                 compContainer.appendChild(div);
             });
 
@@ -1549,7 +1928,8 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             sceneries.forEach(item => {
                 const id = Number(item.id) || 0;
                 let div = document.createElement("div"); div.className = "scenery-img-box";
-                div.innerHTML = `<img src="${escapeHtml(safeUrl(item.link))}" alt="风景" onclick="openSceneryDetail(${id})"><button class="del-btn" onclick="deleteScenery(${id})">×</button>`;
+                const delBtn = canEdit(item) ? '<button class="del-btn" onclick="deleteScenery(' + id + ')">×</button>' : '';
+                div.innerHTML = `<img src="${escapeHtml(safeUrl(item.link))}" alt="风景" onclick="openSceneryDetail(${id})">${delBtn}`;
                 sceneryContainer.appendChild(div);
             });
         }
@@ -1581,6 +1961,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
         document.getElementById("scenery-modal").addEventListener("click", function(e) { if (e.target === this) { closeSceneryDetail(); } });
 
         async function submitCompetition() {
+            if (!requireLogin('发布比赛')) return;
             let title = document.getElementById("comp-title").value;
             let link = document.getElementById("comp-link").value;
             if (title.trim() === "" || link.trim() === "") { alert("请填写完整！"); return; }
@@ -1593,6 +1974,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
         }
 
         async function uploadDoc() {
+            if (!requireLogin('上传资料')) return;
             let fileInput = document.getElementById("doc-file");
             let name = document.getElementById("doc-name").value;
             let type = document.getElementById("doc-type").value;
@@ -1626,6 +2008,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
         }
 
         async function uploadScenery() {
+            if (!requireLogin('分享照片')) return;
             let fileInput = document.getElementById("scenery-file");
             let desc = document.getElementById("scenery-desc").value;
             let submitBtn = document.getElementById("scenery-submit-btn");
@@ -1656,27 +2039,69 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             alert(ok ? "校园美景分享成功！照片在网盘，清单已存云端" : "照片已存本地缓存，但清单写入云端失败（请先执行 supabase-setup.sql）");
         }
 
+        // 删除前统一做权限校验（RLS 是最后防线，这里提前拦住并给友好提示）
+        function guardOwner(item) {
+            if (!requireLogin('删除内容')) return false;
+            if (!canEdit(item)) { alert('这条内容不是你发布的，不能删除。'); return false; }
+            return true;
+        }
         async function deleteDoc(id) {
-            if (!confirm("确定删除？")) return;
-            docs = docs.filter(item => item.id !== id);
+            const item = docs.find(x => x.id === id);
+            if (!guardOwner(item)) return;
+            if (!confirm('确定删除「' + item.name + '」？')) return;
+            docs = docs.filter(x => x.id !== id);
             await deleteRow('doc', id);
             renderAll();
         }
         async function deleteComp(id) {
-            if (!confirm("确定删除？")) return;
-            competitions = competitions.filter(item => item.id !== id);
+            const item = competitions.find(x => x.id === id);
+            if (!guardOwner(item)) return;
+            if (!confirm('确定删除「' + item.title + '」？')) return;
+            competitions = competitions.filter(x => x.id !== id);
             await deleteRow('comp', id);
             renderAll();
         }
         async function deleteScenery(id) {
-            if (!confirm("确定删除？")) return;
-            sceneries = sceneries.filter(item => item.id !== id);
+            const item = sceneries.find(x => x.id === id);
+            if (!guardOwner(item)) return;
+            if (!confirm('确定删除这张照片？')) return;
+            sceneries = sceneries.filter(x => x.id !== id);
             await deleteRow('scenery', id);
             renderAll();
         }
 
-        renderAll();
-        loadFromCloud();   // 启动后用云端清单覆盖本地缓存（首次会自动迁移旧数据）
+        // 编辑自己发布的资料 / 比赛（RLS 保证只能改自己的）
+        async function editDoc(id) {
+            const item = docs.find(x => x.id === id);
+            if (!requireLogin('编辑内容')) return;
+            if (!canEdit(item)) { alert('这条内容不是你发布的，不能编辑。'); return; }
+            const newName = prompt('修改资料名称：', item.name);
+            if (newName === null || !newName.trim()) return;
+            const newType = prompt('修改类型（老师上传 / 学生笔记）：', item.type);
+            if (newType === null) return;
+            const type = (newType === '老师上传') ? '老师上传' : '学生笔记';
+            item.name = newName.trim(); item.type = type;
+            const ok = await updateRow('doc', id, { name: item.name, type: item.type });
+            renderAll();
+            alert(ok ? '已保存修改。' : '本地已更新，但云端同步失败（请检查网络/权限）。');
+        }
+        async function editComp(id) {
+            const item = competitions.find(x => x.id === id);
+            if (!requireLogin('编辑内容')) return;
+            if (!canEdit(item)) { alert('这条内容不是你发布的，不能编辑。'); return; }
+            const newTitle = prompt('修改比赛名称：', item.title);
+            if (newTitle === null || !newTitle.trim()) return;
+            const newLink = prompt('修改链接：', item.link);
+            if (newLink === null) return;
+            item.title = newTitle.trim(); item.link = newLink.trim();
+            const ok = await updateRow('comp', id, { name: item.title, link: item.link });
+            renderAll();
+            alert(ok ? '已保存修改。' : '本地已更新，但云端同步失败（请检查网络/权限）。');
+        }
+
+        // 启动时先恢复登录会话（决定游客/登录状态与按钮权限），再加载云端数据
+        renderAuthUI();
+        applySession().then(function () { loadFromCloud(); });
 
         // ========== 自动同步：保证手机端和电脑端看到的永远是同一份云端数据 ==========
         // 1) 手机切回前台 / 电脑切回该标签页时自动刷新（不会打断当前操作）
