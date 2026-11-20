@@ -1,0 +1,26 @@
+{
+  "name": "浩海 study - 校园资源站",
+  "short_name": "浩海study",
+  "description": "浩海校园资源站：资料共享、竞赛信息、校园美景与 AI 助手",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#eef2f6",
+  "theme_color": "#004085",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
