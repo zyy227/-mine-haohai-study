@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 · 浩海 study</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'PingFang SC','Microsoft YaHei',sans-serif; margin: 0; padding: 0; min-height: 100vh; background: linear-gradient(135deg,#667eea,#764ba2); color: #333; }
+        a { color: inherit; }
+        .topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 22px; background: rgba(255,255,255,.95); box-shadow: 0 2px 12px rgba(0,0,0,.08); position: sticky; top: 0; z-index: 10; flex-wrap: wrap; gap: 10px; }
+        .brand { display: flex; align-items: center; gap: 10px; font-size: 19px; font-weight: bold; color: #5b3bb5; }
+        .brand img { width: 32px; height: 32px; }
+        .brand .badge { font-size: 11px; background: linear-gradient(135deg,#7b2ff7,#f107a3); color: #fff; padding: 2px 8px; border-radius: 10px; font-weight: normal; }
+        .topbar-right { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+        .topbar-right a, .topbar-right button { border: none; background: #f0eefe; color: #5b3bb5; padding: 7px 14px; border-radius: 16px; cursor: pointer; font-size: 13px; text-decoration: none; font-weight: bold; }
+        .wrap { max-width: 1080px; margin: 22px auto; padding: 0 16px 60px; }
+
+        /* 登录/无权限门 */
+        .gate { max-width: 400px; margin: 90px auto; background: #fff; border-radius: 18px; padding: 30px; box-shadow: 0 12px 40px rgba(0,0,0,.18); text-align: center; }
+        .gate h2 { margin: 0 0 8px; color: #5b3bb5; }
+        .gate p { color: #666; font-size: 14px; line-height: 1.7; }
+        .gate input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; margin: 8px 0; font-size: 14px; }
+        .gate button { width: 100%; padding: 12px; border: none; border-radius: 10px; background: linear-gradient(135deg,#667eea,#764ba2); color: #fff; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 6px; }
+        .gate .msg { min-height: 20px; font-size: 13px; color: #d4380d; }
+        .gate .home { display: inline-block; margin-top: 14px; color: #667eea; font-size: 13px; }
+
+        /* 标签页 */
+        .tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+        .tabs button { border: none; background: rgba(255,255,255,.35); color: #fff; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .tabs button.active { background: #fff; color: #5b3bb5; }
+        .panel { display: none; }
+        .panel.active { display: block; }
+
+        /* 统计卡片 */
+        .cards { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 14px; }
+        .card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 6px 20px rgba(0,0,0,.1); }
+        .card .num { font-size: 30px; font-weight: bold; color: #5b3bb5; }
+        .card .label { font-size: 13px; color: #888; margin-top: 6px; }
+        .card .sub { font-size: 11px; color: #aaa; margin-top: 4px; }
+        .card.c1 .num { color: #1890ff; }
+        .card.c2 .num { color: #52c41a; }
+        .card.c3 .num { color: #fa8c16; }
+        .card.c4 .num { color: #eb2f96; }
+
+        .box { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 6px 20px rgba(0,0,0,.1); margin-top: 16px; }
+        .box h3 { margin: 0 0 14px; color: #5b3bb5; font-size: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #f0f0f0; word-break: break-all; }
+        th { color: #888; font-weight: normal; }
+        .tag { padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+        .tag.ok { background: #e8ffea; color: #389e0d; }
+        .tag.down { background: #fff1f0; color: #cf1322; }
+        .op { border: none; padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: 12px; margin-right: 5px; }
+        .op.down { background: #fff1f0; color: #cf1322; }
+        .op.restore { background: #e8ffea; color: #389e0d; }
+        .op.del { background: #f5f5f5; color: #999; }
+        .empty { text-align: center; color: #aaa; padding: 30px; font-size: 14px; }
+        .loading { text-align: center; color: #888; padding: 30px; }
+        .top-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f5f5f5; font-size: 13px; }
+        .top-item .bar { height: 8px; background: linear-gradient(90deg,#667eea,#764ba2); border-radius: 4px; min-width: 2px; }
+        .top-item .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .top-item .vn { color: #888; font-size: 12px; }
+        .refresh { border: none; background: #5b3bb5; color: #fff; padding: 8px 16px; border-radius: 16px; cursor: pointer; font-size: 13px; float: right; }
+        @media (max-width: 600px) {
+            .num { font-size: 24px; }
+            .wrap { margin: 14px auto; }
+            th, td { padding: 8px 4px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="brand"><img src="favicon.svg" alt="logo">浩海 study <span class="badge">管理后台</span></div>
+        <div class="topbar-right" id="topbar-right" style="display:none;">
+            <span id="admin-email"></span>
+            <a href="index.html">返回网站</a>
+            <button onclick="doLogout()">退出登录</button>
+        </div>
+    </div>
+
+    <!-- 门禁：未登录或非管理员 -->
+    <div class="gate" id="gate">
+        <h2>🔐 管理员登录</h2>
+        <p>该页面仅管理员可访问。请使用管理员邮箱登录。</p>
+        <input type="email" id="email" placeholder="管理员邮箱">
+        <input type="password" id="password" placeholder="密码">
+        <div class="msg" id="gate-msg"></div>
+        <button onclick="adminLogin()">登录验证</button>
+        <a class="home" href="index.html">← 返回网站首页</a>
+    </div>
+
+    <!-- 后台主体 -->
+    <div class="wrap" id="main" style="display:none;">
+        <div class="tabs">
+            <button class="active" data-tab="stats" onclick="switchTab('stats')">📊 数据统计</button>
+            <button data-tab="items" onclick="switchTab('items')">📋 内容巡查</button>
+            <button data-tab="users" onclick="switchTab('users')">👥 注册用户</button>
+        </div>
+
+        <!-- 统计 -->
+        <div class="panel active" id="panel-stats">
+            <button class="refresh" onclick="loadStats()">🔄 刷新</button>
+            <div class="cards" id="stat-cards">
+                <div class="card"><div class="num">-</div><div class="label">加载中…</div></div>
+            </div>
+            <div class="box">
+                <h3>🔥 最受欢迎的内容（按查看/下载次数）</h3>
+                <div id="top-list"><div class="loading">加载中…</div></div>
+            </div>
+        </div>
+
+        <!-- 内容巡查 -->
+        <div class="panel" id="panel-items">
+            <button class="refresh" onclick="loadItems()">🔄 刷新</button>
+            <div class="box">
+                <h3>全部内容（含已下架）</h3>
+                <div id="items-list"><div class="loading">加载中…</div></div>
+            </div>
+        </div>
+
+        <!-- 用户 -->
+        <div class="panel" id="panel-users">
+            <button class="refresh" onclick="loadUsers()">🔄 刷新</button>
+            <div class="box">
+                <h3>注册用户列表</h3>
+                <div id="users-list"><div class="loading">加载中…</div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://ihvusuaeksxynxewcmjs.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_NrbDiThGb-gPPSAVmVZXyA_PXXBslVc';
+        const ADMIN_EMAIL = '2984054909@qq.com';
+        const supabaseClient = (typeof supabase !== 'undefined' && supabase.createClient)
+            ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+        function msg(t) { document.getElementById('gate-msg').textContent = t || ''; }
+        function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+        function fmtDate(s) { if (!s) return '-'; const d = new Date(s); return isNaN(d) ? '-' : d.toLocaleDateString('zh-CN'); }
+
+        async function getToken() {
+            if (!supabaseClient || !supabaseClient.auth) return '';
+            const { data } = await supabaseClient.auth.getSession();
+            return (data && data.session && data.session.access_token) || '';
+        }
+
+        // 调用管理接口（自动带 token）
+        async function api(action, method, body) {
+            const token = await getToken();
+            const opt = { method: method || 'GET', headers: { 'X-User-Token': token } };
+            if (body) { opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(body); }
+            const res = await fetch('/api/admin?action=' + encodeURIComponent(action), opt);
+            let data;
+            try { data = await res.json(); } catch (_) { data = {}; }
+            if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+            return data;
+        }
+
+        // 管理员登录
+        async function adminLogin() {
+            const email = (document.getElementById('email').value || '').trim();
+            const password = document.getElementById('password').value || '';
+            if (!email || !password) { msg('请填写邮箱和密码'); return; }
+            if (email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) { msg('该邮箱不是管理员账号'); return; }
+            if (!supabaseClient) { msg('登录组件未加载，请刷新页面'); return; }
+            msg('登录中…');
+            try {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                if (!data.session) throw new Error('登录未返回会话');
+                await bootstrap();
+            } catch (e) {
+                msg('登录失败：' + (e.message || '请检查邮箱和密码'));
+            }
+        }
+
+        async function doLogout() {
+            try { if (supabaseClient) await supabaseClient.auth.signOut(); } catch (_) {}
+            location.reload();
+        }
+
+        // 启动时校验身份
+        async function bootstrap() {
+            const token = await getToken();
+            if (!token) { showGate(); return; }
+            let check;
+            try { check = await api('check'); }
+            catch (e) { showGate(); return; }
+            if (!check.isAdmin) {
+                document.getElementById('gate').querySelector('p').textContent = '当前账号（' + esc(check.email || '') + '）不是管理员，无权访问此页面。';
+                showGate();
+                return;
+            }
+            document.getElementById('gate').style.display = 'none';
+            document.getElementById('main').style.display = 'block';
+            document.getElementById('topbar-right').style.display = 'flex';
+            document.getElementById('admin-email').textContent = '👤 ' + esc(check.email);
+            loadStats();
+        }
+
+        function showGate() {
+            document.getElementById('gate').style.display = 'block';
+            document.getElementById('main').style.display = 'none';
+            document.getElementById('topbar-right').style.display = 'none';
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + tab).classList.add('active');
+            if (tab === 'stats') loadStats();
+            if (tab === 'items') loadItems();
+            if (tab === 'users') loadUsers();
+        }
+
+        // ===== 统计 =====
+        async function loadStats() {
+            const box = document.getElementById('stat-cards');
+            box.innerHTML = '<div class="card"><div class="num">-</div><div class="label">加载中…</div></div>';
+            try {
+                const d = await api('stats');
+                const s = d.stats || {};
+                const cards = [
+                    ['c1', s.contentTotal, '内容总数', `资料 ${s.docCount||0} · 比赛 ${s.compCount||0} · 美景 ${s.sceneryCount||0}`],
+                    ['c2', s.userCount, '注册用户', '已注册的账号数'],
+                    ['c3', s.visitTotal, '网站访问量', `今日 ${s.visitToday||0} 次`],
+                    ['c4', s.aiTotal, 'AI 提问次数', `今日 ${s.aiToday||0} 次`]
+                ];
+                box.innerHTML = cards.map(c => `<div class="card ${c[0]}"><div class="num">${c[1]}</div><div class="label">${c[2]}</div><div class="sub">${c[3]}</div></div>`).join('') +
+                    `<div class="card"><div class="num">${s.downloadTotal||0}</div><div class="label">下载/查看次数</div><div class="sub">今日 ${s.downloadToday||0} 次</div></div>` +
+                    `<div class="card"><div class="num">${s.takedownCount||0}</div><div class="label">已下架内容</div><div class="sub">待处理违规</div></div>`;
+
+                const tops = d.topItems || [];
+                const maxV = tops.reduce((a, x) => Math.max(a, x.views || 0), 1);
+                const kindName = { doc:'📚资料', comp:'🏆比赛', scenery:'🌸美景' };
+                document.getElementById('top-list').innerHTML = tops.length
+                    ? tops.map(t => `<div class="top-item"><span class="nm">${esc(kindName[t.kind]||t.kind)} ${esc(t.name||'未命名')}</span><span class="bar" style="width:${Math.max(2,(t.views||0)/maxV*120)}px"></span><span class="vn">${t.views||0} 次</span></div>`).join('')
+                    : '<div class="empty">暂无查看记录</div>';
+            } catch (e) {
+                box.innerHTML = '<div class="card"><div class="label" style="color:#cf1322">加载失败：' + esc(e.message) + '</div></div>';
+            }
+        }
+
+        // ===== 内容巡查 =====
+        async function loadItems() {
+            const box = document.getElementById('items-list');
+            box.innerHTML = '<div class="loading">加载中…</div>';
+            try {
+                const d = await api('items');
+                const items = d.items || [];
+                const kindName = { doc:'📚资料', comp:'🏆比赛', scenery:'🌸美景' };
+                if (!items.length) { box.innerHTML = '<div class="empty">暂无内容</div>'; return; }
+                box.innerHTML = '<table><thead><tr><th>类型</th><th>名称</th><th>发布者</th><th>状态</th><th>查看</th><th>操作</th></tr></thead><tbody>' +
+                    items.map(it => {
+                        const name = it.name || it.desc_text || '未命名';
+                        const status = it.status === 'takedown'
+                            ? '<span class="tag down">已下架</span>' : '<span class="tag ok">公开</span>';
+                        const op = it.status === 'takedown'
+                            ? `<button class="op restore" onclick="moderate('restore',${it.id})">恢复</button>`
+                            : `<button class="op down" onclick="moderate('takedown',${it.id})">下架</button>`;
+                        return `<tr><td>${kindName[it.kind]||it.kind}</td><td>${esc(name)}</td><td>${esc((it.owner_email||'平台').split('@')[0])}</td><td>${status}</td><td>${it.view_count||0}</td><td>${op}<button class="op del" onclick="moderate('delete',${it.id})">删除</button></td></tr>`;
+                    }).join('') + '</tbody></table>';
+            } catch (e) {
+                box.innerHTML = '<div class="empty" style="color:#cf1322">加载失败：' + esc(e.message) + '</div>';
+            }
+        }
+
+        async function moderate(action, id) {
+            const names = { takedown:'下架', restore:'恢复公开', delete:'删除' };
+            if (!confirm('确定要「' + names[action] + '」这条内容吗？')) return;
+            try {
+                await api('moderate', 'POST', { action, id });
+                loadItems();
+                loadStats();
+            } catch (e) { alert('操作失败：' + e.message); }
+        }
+
+        // ===== 用户 =====
+        async function loadUsers() {
+            const box = document.getElementById('users-list');
+            box.innerHTML = '<div class="loading">加载中…</div>';
+            try {
+                const d = await api('users');
+                const users = d.users || [];
+                if (!users.length) { box.innerHTML = '<div class="empty">暂无注册用户</div>'; return; }
+                box.innerHTML = '<table><thead><tr><th>邮箱</th><th>注册时间</th><th>最近登录</th></tr></thead><tbody>' +
+                    users.map(u => `<tr><td>${esc(u.email)}</td><td>${fmtDate(u.created_at)}</td><td>${fmtDate(u.last_sign_in_at)}</td></tr>`).join('') +
+                    '</tbody></table>';
+            } catch (e) {
+                box.innerHTML = '<div class="empty" style="color:#cf1322">加载失败：' + esc(e.message) + '</div>';
+            }
+        }
+
+        bootstrap();
+    </script>
+</body>
+</html>

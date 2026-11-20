@@ -127,6 +127,9 @@
         .auth-close { position: absolute; top: 12px; right: 14px; border: none; background: none; font-size: 24px; color: #999; cursor: pointer; line-height: 1; }
         .edit-btn { background: #2f6fed; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; margin-right: 6px; opacity: .85; }
         .owner-tag { font-size: 11px; color: #888; margin-right: 8px; }
+        .takedown-tag { font-size: 11px; color: #a8071a; background: #fff1f0; border: 1px solid #ffa39e; border-radius: 4px; padding: 1px 6px; margin-right: 8px; white-space: nowrap; }
+        .scenery-takedown { position: absolute; top: 5px; left: 5px; margin: 0; z-index: 2; }
+        .admin-entry { background: linear-gradient(135deg,#7b2ff7,#f107a3) !important; color: #fff !important; text-decoration: none; }
         .guest-lock { font-size: 12px; color: #b26a00; background: #fffbe6; border: 1px solid #ffe58f; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
 
         .row-layout { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
@@ -630,6 +633,10 @@
         const SUPABASE_KEY = 'sb_publishable_NrbDiThGb-gPPSAVmVZXyA_PXXBslVc'; 
         const BUCKET_NAME = 'file'; 
 
+        // 管理员邮箱（仅用于控制"管理后台"入口显示；真正的权限校验在服务端 /api/admin 完成）
+        const ADMIN_EMAIL = '2984054909@qq.com';
+        function isAdmin() { return !!(currentUser && currentUser.email && currentUser.email.toLowerCase() === ADMIN_EMAIL); }
+
         // 2. AI 配置
         // 🔒 密钥已移至 Cloudflare Pages 环境变量 OPENROUTER_API_KEY，前端不再保存任何密钥
         // AI 请求统一发给自己的后端函数 /api/chat，由它转发到 OpenRouter
@@ -711,6 +718,13 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
 
         // 是不是游客
         function isGuest() { return !currentUser; }
+
+        // 被下架内容的标记（只有作者本人能看到自己的下架内容，游客/他人看不到）
+        function takedownTag(item) {
+            return (item && item.status === 'takedown')
+                ? '<span class="takedown-tag" title="该内容已被管理员下架，其他人看不到，仅你可见">⛔ 已下架·仅你可见</span>'
+                : '';
+        }
 
         // 弹窗控制
         let authTab = 'login';
@@ -845,10 +859,15 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             if (currentUser) {
                 const initial = (currentUser.email || 'U').charAt(0).toUpperCase();
                 const short = currentUser.email || '已登录';
-                navHtml = '<div class="auth-user"><span class="auth-avatar">' + escapeHtml(initial) + '</span>' +
+                const adminBtn = isAdmin()
+                    ? '<a class="auth-btn admin-entry" href="admin.html">⚙️ 管理后台</a>'
+                    : '';
+                navHtml = '<div class="auth-user">' + adminBtn +
+                          '<span class="auth-avatar">' + escapeHtml(initial) + '</span>' +
                           '<span class="auth-email" title="' + escapeHtml(short) + '">' + escapeHtml(short) + '</span>' +
                           '<button class="auth-btn" onclick="logout()">退出</button></div>';
-                startHtml = '<div class="auth-user"><span class="auth-avatar">' + escapeHtml(initial) + '</span>' +
+                startHtml = '<div class="auth-user">' + adminBtn +
+                            '<span class="auth-avatar">' + escapeHtml(initial) + '</span>' +
                             '<span>' + escapeHtml(short) + '</span>' +
                             '<button class="auth-btn" onclick="logout()">退出</button></div>';
             } else {
@@ -932,6 +951,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
         };
 
         function enterMain(targetCardId = 'all') {
+            trackMetric('visit');   // 统计：一次网站访问（每次进入主界面记一笔）
             let startScreen = document.getElementById("start-screen"), mainScreen = document.getElementById("main-screen");
             history.pushState({ page: 'main', view: targetCardId }, '', '');
             let cards = document.querySelectorAll('.module-card');
@@ -1415,9 +1435,11 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             const id = Number(row.id);
             const owner_id = row.owner_id || '';
             const owner_email = row.owner_email || '';
-            if (row.kind === 'doc') return { id, name: row.name || '', type: row.type || '老师上传', link: row.link || '', owner_id, owner_email };
-            if (row.kind === 'comp') return { id, title: row.name || '', link: row.link || '', owner_id, owner_email };
-            return { id, desc: row.desc_text || '', link: row.link || '', owner_id, owner_email };
+            const status = row.status || 'approved';
+            const view_count = Number(row.view_count) || 0;
+            if (row.kind === 'doc') return { id, name: row.name || '', type: row.type || '老师上传', link: row.link || '', owner_id, owner_email, status, view_count };
+            if (row.kind === 'comp') return { id, title: row.name || '', link: row.link || '', owner_id, owner_email, status, view_count };
+            return { id, desc: row.desc_text || '', link: row.link || '', owner_id, owner_email, status, view_count };
         }
 
         // 页面里的数据结构 → 云端一行（带上归属信息；平台内容 owner 留空）
@@ -1458,6 +1480,21 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
                 promise,
                 new Promise((_, reject) => setTimeout(() => reject(new Error('请求超时')), ms))
             ]);
+        }
+
+        // 统计埋点：visit=访问 / download=下载查看 / ai=AI提问（AI 由后端埋点）
+        // 失败静默，绝不影响用户正常操作
+        function trackMetric(metric, itemId) {
+            try {
+                const body = { metric: metric };
+                if (itemId) body.itemId = Number(itemId);
+                fetch('/api/track', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                    keepalive: true
+                }).catch(function () {});
+            } catch (_) {}
         }
 
         // 读取云端清单：优先走本站 /api/items 中转（手机 4G 更稳），失败再回退直连 supabase.co
@@ -1894,7 +1931,9 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             updateDashboard();
             let docContainer = document.getElementById("doc-list");
             docContainer.innerHTML = ""; 
-            const shownDocs = filterState.type === 'all' ? docs : docs.filter(d => d.type === filterState.type);
+            // 被下架的内容：只有作者本人在主站看得到（others 看不到，管理员去后台看）
+            let visibleDocs = docs.filter(d => d.status !== 'takedown' || canEdit(d));
+            const shownDocs = filterState.type === 'all' ? visibleDocs : visibleDocs.filter(d => d.type === filterState.type);
             shownDocs.forEach(item => {
                 const id = Number(item.id) || 0;
                 const tagStyle = item.type === "老师上传" ? "background:#d1ecf1; color:#0c5460;" : "background:#e2e3e5; color:#383d41;";
@@ -1904,13 +1943,13 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
                     ? '<button class="edit-btn" onclick="editDoc(' + id + ')">编辑</button><button class="del-btn" onclick="deleteDoc(' + id + ')">删除</button>'
                     : (currentUser ? '<span class="owner-tag">他人/平台发布</span>' : '');
                 // 所有来自云端/用户输入的数据一律转义，杜绝存储型 XSS
-                div.innerHTML = `<a href="javascript:void(0)" onclick="openDocDetail(${id})">${escapeHtml(item.name)}</a><div>${ownerText}<span class="tag" style="${tagStyle}">${escapeHtml(item.type)}</span>${manageBtns}</div>`;
+                div.innerHTML = `<a href="javascript:void(0)" onclick="openDocDetail(${id})">${escapeHtml(item.name)}</a><div>${ownerText}${takedownTag(item)}<span class="tag" style="${tagStyle}">${escapeHtml(item.type)}</span>${manageBtns}</div>`;
                 docContainer.appendChild(div);
             });
 
             let compContainer = document.getElementById("competition-list");
             compContainer.innerHTML = "";
-            competitions.forEach(item => {
+            competitions.filter(c => c.status !== 'takedown' || canEdit(c)).forEach(item => {
                 const id = Number(item.id) || 0;
                 let div = document.createElement("div"); div.className = "item";
                 const ownerText = item.owner_email ? '<span class="owner-tag">by ' + escapeHtml(item.owner_email.split('@')[0]) + '</span>' : '';
@@ -1919,17 +1958,19 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
                 const manageBtns = canEdit(item)
                     ? '<button class="edit-btn" onclick="editComp(' + id + ')">编辑</button><button class="del-btn" onclick="deleteComp(' + id + ')">删除</button>'
                     : (currentUser ? '<span class="owner-tag">他人/平台发布</span>' : '');
-                div.innerHTML = `<a href="${escapeHtml(safeUrl(item.link))}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title)}</a><div>${ownerText}<span class="tag" style="${tagColor}">${tagText}</span>${manageBtns}</div>`;
+                const clickTrack = "trackMetric('download'," + id + ")";
+                div.innerHTML = `<a href="${escapeHtml(safeUrl(item.link))}" onclick="${clickTrack}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title)}</a><div>${ownerText}${takedownTag(item)}<span class="tag" style="${tagColor}">${tagText}</span>${manageBtns}</div>`;
                 compContainer.appendChild(div);
             });
 
             let sceneryContainer = document.getElementById("scenery-list");
             sceneryContainer.innerHTML = "";
-            sceneries.forEach(item => {
+            sceneries.filter(s => s.status !== 'takedown' || canEdit(s)).forEach(item => {
                 const id = Number(item.id) || 0;
                 let div = document.createElement("div"); div.className = "scenery-img-box";
                 const delBtn = canEdit(item) ? '<button class="del-btn" onclick="deleteScenery(' + id + ')">×</button>' : '';
-                div.innerHTML = `<img src="${escapeHtml(safeUrl(item.link))}" alt="风景" onclick="openSceneryDetail(${id})">${delBtn}`;
+                const tTag = item.status === 'takedown' ? '<span class="takedown-tag scenery-takedown">⛔</span>' : '';
+                div.innerHTML = `<img src="${escapeHtml(safeUrl(item.link))}" alt="风景" onclick="openSceneryDetail(${id})">${tTag}${delBtn}`;
                 sceneryContainer.appendChild(div);
             });
         }
@@ -1937,11 +1978,12 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
         function openDocDetail(id) {
             let doc = docs.find(item => item.id === id);
             if (!doc) return;
+            trackMetric('download', id);   // 统计：资料被查看
             document.getElementById("modal-doc-title").innerText = doc.name;
             document.getElementById("modal-doc-type").innerText = doc.type;
             let btn = document.getElementById("modal-doc-link");
             if (doc.link && /^(https?:\/\/|\/)/i.test(String(doc.link).trim())) {
-                btn.href = safeUrl(doc.link); btn.innerText = "📥 点击下载 / 预览资料"; btn.style.background = "#1890ff"; btn.onclick = null; btn.target = "_blank"; btn.rel = "noopener noreferrer";
+                btn.href = safeUrl(doc.link); btn.innerText = "📥 点击下载 / 预览资料"; btn.style.background = "#1890ff"; btn.onclick = function () { trackMetric('download', id); }; btn.target = "_blank"; btn.rel = "noopener noreferrer";
             } else {
                 btn.href = "javascript:void(0);"; btn.innerText = "⚠️ 该资料未提供下载链接"; btn.style.background = "#999"; btn.onclick = function(e) { e.preventDefault(); alert("上传者没有留下下载链接哦！"); };
             }
@@ -1953,6 +1995,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
         function openSceneryDetail(id) {
             let scene = sceneries.find(item => item.id === id);
             if (!scene) return;
+            trackMetric('download', id);   // 统计：照片被查看
             document.getElementById("modal-scenery-img").src = safeUrl(scene.link);
             document.getElementById("modal-scenery-desc").innerText = scene.desc || "这张照片没有留下描述哦~";
             document.getElementById("scenery-modal").style.display = "flex";
