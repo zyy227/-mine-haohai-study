@@ -98,7 +98,7 @@
         <input type="email" id="email" placeholder="管理员邮箱">
         <input type="password" id="password" placeholder="密码">
         <div class="msg" id="gate-msg"></div>
-        <button onclick="adminLogin()">登录验证</button>
+        <button id="login-btn" onclick="adminLogin()">登录验证</button>
         <a class="home" href="index.html">← 返回网站首页</a>
     </div>
 
@@ -152,6 +152,14 @@
         function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
         function fmtDate(s) { if (!s) return '-'; const d = new Date(s); return isNaN(d) ? '-' : d.toLocaleDateString('zh-CN'); }
 
+        // 超时保护：网络卡住时不再永远停在"登录中"
+        function withTimeout(promise, ms, label) {
+            return Promise.race([
+                promise,
+                new Promise((_, reject) => setTimeout(() => reject(new Error((label || '请求') + '超时，请检查网络后重试')), ms))
+            ]);
+        }
+
         async function getToken() {
             if (!supabaseClient || !supabaseClient.auth) return '';
             const { data } = await supabaseClient.auth.getSession();
@@ -163,7 +171,7 @@
             const token = await getToken();
             const opt = { method: method || 'GET', headers: { 'X-User-Token': token } };
             if (body) { opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(body); }
-            const res = await fetch('/api/admin?action=' + encodeURIComponent(action), opt);
+            const res = await withTimeout(fetch('/api/admin?action=' + encodeURIComponent(action), opt), 15000, '服务器请求');
             let data;
             try { data = await res.json(); } catch (_) { data = {}; }
             if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
@@ -178,13 +186,26 @@
             if (email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) { msg('该邮箱不是管理员账号'); return; }
             if (!supabaseClient) { msg('登录组件未加载，请刷新页面'); return; }
             msg('登录中…');
+            const loginBtn = document.getElementById('login-btn');
+            if (loginBtn) loginBtn.disabled = true;
             try {
-                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                const { data, error } = await withTimeout(
+                    supabaseClient.auth.signInWithPassword({ email, password }), 20000, '登录'
+                );
                 if (error) throw error;
                 if (!data.session) throw new Error('登录未返回会话');
+                msg('登录成功，正在进入…');
                 await bootstrap();
             } catch (e) {
-                msg('登录失败：' + (e.message || '请检查邮箱和密码'));
+                const m = String(e && e.message || '');
+                let tip;
+                if (/超时|timeout|fetch|network/i.test(m)) tip = '网络不稳定，连接登录服务器超时。请检查网络后重试（多试几次，或换个网络环境）';
+                else if (/email not confirmed|not confirmed|confirm/i.test(m)) tip = '邮箱还没验证，请去注册邮箱点一下 Supabase 发来的确认链接，再回来登录';
+                else if (/invalid login credentials|invalid.*password|bad credentials/i.test(m)) tip = '邮箱或密码错误，请检查后重试';
+                else tip = m || '请检查邮箱和密码';
+                msg('登录失败：' + tip);
+            } finally {
+                if (loginBtn) loginBtn.disabled = false;
             }
         }
 
