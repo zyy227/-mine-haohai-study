@@ -2,8 +2,16 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <!-- PWA：可添加到手机主屏幕、全屏运行 -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#004085">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="浩海study">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <title>浩海 study</title>
     <style>
         /* ========== 全局与基础样式 ========== */
@@ -201,6 +209,61 @@
         .news-item:nth-child(3) .news-idx { background: #faad14; }
         .news-item .news-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .news-tip { font-size: 13px; color: #999; padding: 10px 0; text-align: center; margin: 0; }
+
+        /* ==========================================
+           📱 手机端响应式适配（PWA / 移动端友好）
+           ========================================== */
+        * { -webkit-tap-highlight-color: transparent; }
+        html, body { -webkit-text-size-adjust: 100%; }
+        input, textarea, select, button { font-size: 16px; } /* 防止 iOS 聚焦时自动放大 */
+
+        @media (max-width: 768px) {
+            /* --- 开始界面 --- */
+            #start-screen { padding-top: 8vh; padding-left: 16px; padding-right: 16px; }
+            .start-header { gap: 18px; }
+            .welcome-text { font-size: 26px; letter-spacing: 2px; gap: 8px; }
+            .brand-logo { width: 36px; height: 36px; }
+            .search-container { padding: 6px 8px; }
+            .filter-trigger { padding: 6px 9px; font-size: 12px; margin-right: 6px; }
+            .search-input { font-size: 15px; padding: 8px 12px; min-width: 0; }
+            .start-btn { width: 44px; height: 44px; }
+            .filter-panel { padding: 16px; }
+            .filter-row { flex-direction: column; gap: 10px; }
+            .news-card { padding: 10px 12px; }
+
+            /* --- 主界面 --- */
+            .navbar { padding: 12px 14px; }
+            .navbar h2, .navbar h2 .study-text { font-size: 22px; }
+            .container { padding: 12px; }
+            .dashboard { padding: 12px; margin-bottom: 14px; }
+            .data-item h3 { font-size: 20px; }
+            .data-item p { font-size: 12px; }
+            .row-layout { flex-direction: column; gap: 14px; }
+            .card { min-width: 0; width: 100%; padding: 14px; }
+            .scenery-img-box { height: 120px; }
+            .modal-content { padding: 18px; }
+
+            /* --- AI 悬浮球与面板：贴边小尺寸 + 全宽面板 --- */
+            #ai-ball { width: 64px; height: 64px; right: 16px; bottom: 16px; }
+            .ai-chip-icon { width: 36px; height: 36px; }
+            .ai-chip-ring { width: 48px; height: 48px; }
+            #ai-chat-panel {
+                position: fixed !important;
+                left: 8px !important;
+                right: 8px !important;
+                top: auto !important;
+                bottom: 90px !important;
+                width: auto !important;
+                height: 60vh !important;
+                max-height: 520px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .welcome-text { font-size: 22px; }
+            .filter-trigger { font-size: 11px; padding: 6px 7px; }
+            .search-input { font-size: 14px; padding: 8px; }
+        }
     </style>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -544,50 +607,69 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
         const ball = document.getElementById('ai-ball');
         const panel = document.getElementById('ai-chat-panel');
         let isDragging = false, hasMoved = false, offsetX, offsetY, startX, startY;
+        let lastTouchTime = 0;   // 触摸后短暂屏蔽合成鼠标事件，避免点击触发两次
 
-        ball.addEventListener('mousedown', (e) => {
+        // 统一处理按下：鼠标和触摸共用
+        function ballDragStart(clientX, clientY) {
             isDragging = true;
             hasMoved = false;
-            startX = e.clientX; startY = e.clientY;   // 记录按下位置，用于区分"点击"和"拖拽"
+            startX = clientX; startY = clientY;   // 记录按下位置，用于区分"点击"和"拖拽"
             const rect = ball.getBoundingClientRect();
-            offsetX = e.clientX - rect.left;
-            offsetY = e.clientY - rect.top;
+            offsetX = clientX - rect.left;
+            offsetY = clientY - rect.top;
             ball.style.cursor = 'grabbing';
-        });
-
-               document.addEventListener('mousemove', (e) => {
+        }
+        // 统一处理移动：鼠标和触摸共用
+        function ballDragMove(clientX, clientY) {
             if (!isDragging) return;
-            // 关键修复：移动距离超过 6px 才算拖拽，轻微手抖仍视为点击（解决点一下弹不出来的问题）
-            const dist = Math.hypot(e.clientX - startX, e.clientY - startY);
+            // 移动距离超过 6px 才算拖拽，轻微手抖仍视为点击
+            const dist = Math.hypot(clientX - startX, clientY - startY);
             if (!hasMoved && dist < 6) return;
             hasMoved = true;
 
-            let newX = e.clientX - offsetX;
-            let newY = e.clientY - offsetY;
-            
-            // 限制小球不要飞出屏幕
+            let newX = clientX - offsetX;
+            let newY = clientY - offsetY;
             newX = Math.max(0, Math.min(newX, window.innerWidth - ball.offsetWidth));
             newY = Math.max(0, Math.min(newY, window.innerHeight - ball.offsetHeight));
-            
             ball.style.left = newX + 'px';
             ball.style.top = newY + 'px';
             ball.style.right = 'auto';
             ball.style.bottom = 'auto';
 
-            // 👇👇👇 新增：让聊天面板跟随小球移动 👇👇👇
-            if (panel.style.display === 'flex') {
-                positionPanel(ball);
-            }
-        });
-       
+            if (panel.style.display === 'flex') { positionPanel(ball); }
+        }
+        // 统一处理松开：鼠标和触摸共用
+        function ballDragEnd() {
+            if (!isDragging) return;
+            isDragging = false;
+            ball.style.cursor = 'grab';
+            if (!hasMoved) { toggleAIPanel(); }
+        }
 
-        document.addEventListener('mouseup', () => {
-            if (isDragging) {
-                isDragging = false;
-                ball.style.cursor = 'grab';
-                if (!hasMoved) { toggleAIPanel(); }
-            }
+        // ---- 鼠标事件 ----
+        ball.addEventListener('mousedown', (e) => {
+            if (Date.now() - lastTouchTime < 700) return;  // 忽略触摸合成出来的鼠标事件
+            e.preventDefault();
+            ballDragStart(e.clientX, e.clientY);
         });
+        document.addEventListener('mousemove', (e) => ballDragMove(e.clientX, e.clientY));
+        document.addEventListener('mouseup', () => ballDragEnd());
+
+        // ---- 触摸事件（手机）----
+        ball.addEventListener('touchstart', (e) => {
+            lastTouchTime = Date.now();
+            const t = e.touches[0];
+            ballDragStart(t.clientX, t.clientY);
+            e.preventDefault();  // 阻止页面滚动/缩放干扰拖拽
+        }, { passive: false });
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            const t = e.touches[0];
+            ballDragMove(t.clientX, t.clientY);
+            e.preventDefault();  // 拖拽时禁止页面跟着滚
+        }, { passive: false });
+        document.addEventListener('touchend', () => ballDragEnd());
+        document.addEventListener('touchcancel', () => ballDragEnd());
 
                 // 动态计算面板位置：小屏幕下也不会超出视口
         function positionPanel(ballEl) {
