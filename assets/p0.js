@@ -11,13 +11,17 @@ var P0 = {
     module: 'all',
     courses: [],
     teams: [],
+    lostfound: [],
+    stats: null,
     mine: null,
     courseQ: '',
     teamQ: '',
     teamKind: 'all',
+    lfKind: 'all',
+    lfQ: '',
     openTeam: 0,
     modalSeq: 0,
-    loaded: { courses: false, teams: false, mine: false }
+    loaded: { courses: false, teams: false, lostfound: false, mine: false, stats: false }
 };
 
 /* ---------------- 基础工具 ---------------- */
@@ -158,14 +162,16 @@ function p0Show(mod) {
         document.querySelectorAll('#main-screen .module-card').forEach(function (c) { c.style.display = 'block'; });
     }
 
-    ['courses', 'teams', 'mine'].forEach(function (k) {
+    ['courses', 'teams', 'lostfound', 'mine', 'stats'].forEach(function (k) {
         var sec = document.getElementById('p0-' + k);
         if (sec) sec.classList.toggle('active', P0.module === k);
     });
 
     if (P0.module === 'courses' && !P0.loaded.courses) p0LoadCourses();
     if (P0.module === 'teams' && !P0.loaded.teams) p0LoadTeams();
+    if (P0.module === 'lostfound' && !P0.loaded.lostfound) p0LoadLostFound();
     if (P0.module === 'mine') p0LoadMine(true);
+    if (P0.module === 'stats') p0LoadStats();
 
     try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) {}
 }
@@ -173,10 +179,13 @@ function p0Show(mod) {
 function p0Reload() {
     if (P0.module === 'courses') { P0.loaded.courses = false; p0LoadCourses(); }
     else if (P0.module === 'teams') { P0.loaded.teams = false; p0LoadTeams(); }
+    else if (P0.module === 'lostfound') { P0.loaded.lostfound = false; p0LoadLostFound(); }
     else if (P0.module === 'mine') p0LoadMine(true);
+    else if (P0.module === 'stats') p0LoadStats();
     else {
         P0.loaded.courses = false;
         P0.loaded.teams = false;
+        P0.loaded.lostfound = false;
         p0Toast('已重新连接，切换模块即可看到最新数据', 'ok');
     }
 }
@@ -186,6 +195,7 @@ function p0OnAuthChange() {
     P0.loaded.mine = false;
     if (P0.module === 'mine') p0LoadMine(true);
     else if (P0.module === 'teams' && P0.loaded.teams) { P0.loaded.teams = false; p0LoadTeams(); }
+    else if (P0.module === 'lostfound' && P0.loaded.lostfound) { P0.loaded.lostfound = false; p0LoadLostFound(); }
 }
 
 /* ---------------- 课程中心 ---------------- */
@@ -309,7 +319,7 @@ function p0RenderCourseDetail(d) {
             '<span class="p0-chip green">🤝 ' + teams.length + ' 个组队</span>' +
         '</div>' +
         '<div class="p0-actions" style="margin:16px 0 6px">' +
-            '<button class="p0-btn primary" onclick="p0UploadForCourse(' + cid + ')">📤 上传资料到这门课</button>' +
+            '<button class="p0-btn primary" onclick="p0OpenCourseUpload(' + cid + ')">📤 上传资料到这门课</button>' +
             '<button class="p0-btn" onclick="p0OpenTeamForm(' + cid + ')">🤝 发起组队</button>' +
         '</div>' +
         '<div class="p0-section-title">📚 这门课的资料 <span class="p0-chip gray">' + docs.length + '</span></div>' +
@@ -393,17 +403,73 @@ async function p0SubmitCourse() {
     }
 }
 
-/* 把资料挂到某门课：回到资料模块并预选课程 */
-function p0UploadForCourse(courseId) {
-    p0CloseModal();
-    p0Show('all');
-    var sel = document.getElementById('doc-course');
-    if (sel) sel.value = String(courseId);
-    var form = document.getElementById('upload-form-container');
-    if (form) form.style.display = 'block';
-    var card = document.getElementById('doc-card');
-    if (card) setTimeout(function () { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 120);
-    p0Toast('已选中课程，选好文件后点「确认发布」即可', 'ok');
+/* 在课程详情里直接上传资料（不再跳到资料模块，避免挂错课程） */
+function p0OpenCourseUpload(courseId) {
+    if (!p0IsLogged()) { if (typeof requireLogin === 'function') requireLogin('上传资料'); return; }
+    var body =
+        '<div class="p0-hint blue">资料会直接挂到这门课下，上传后课程页立刻能看到，也会出现在资料共享库。</div>' +
+        '<div class="p0-field"><label>资料名称 *</label><input id="p0-cu-name" class="p0-input" maxlength="80" placeholder="如：C语言-指针与结构体-笔记.pdf"></div>' +
+        '<div class="p0-row2">' +
+            '<div class="p0-field"><label>资料类型</label><select id="p0-cu-type" class="p0-select"><option value="学生笔记">学生笔记</option><option value="老师上传">老师课件</option></select></div>' +
+            '<div class="p0-field"><label>选择文件 *</label><input id="p0-cu-file" class="p0-input" type="file" style="background:#fff"></div>' +
+        '</div>' +
+        '<div class="p0-modal-foot"><button class="p0-btn" onclick="p0CloseModal()">取消</button><button class="p0-btn primary" id="p0-cu-submit" onclick="p0SubmitCourseUpload(' + Number(courseId) + ')">上传并发布</button></div>';
+    p0Modal(p0ModalShell('上传资料到这门课', body));
+}
+
+async function p0SubmitCourseUpload(courseId) {
+    var nameEl = document.getElementById('p0-cu-name');
+    var fileEl = document.getElementById('p0-cu-file');
+    var name = nameEl ? nameEl.value.trim() : '';
+    var file = (fileEl && fileEl.files) ? fileEl.files[0] : null;
+    if (!name) { p0Toast('请填写资料名称', 'err'); return; }
+    if (!file) { p0Toast('请选择要上传的文件', 'err'); return; }
+
+    var maxMb = (typeof MAX_DOC_MB !== 'undefined') ? MAX_DOC_MB : 20;
+    if (file.size > maxMb * 1024 * 1024) {
+        p0Toast('文件超过 ' + maxMb + 'MB，请压缩后再传', 'err');
+        return;
+    }
+    if (typeof supabaseClient === 'undefined' || !supabaseClient.storage) {
+        p0Toast('存储组件未加载，请刷新页面重试', 'err');
+        return;
+    }
+
+    var btn = document.getElementById('p0-cu-submit');
+    if (btn) { btn.disabled = true; btn.textContent = '上传中…'; }
+    try {
+        var bucket = (typeof BUCKET_NAME !== 'undefined') ? BUCKET_NAME : 'file';
+        var ext = (file.name.split('.').pop() || 'bin').toLowerCase();
+        var fileName = 'course_' + courseId + '_' + Date.now() + '.' + ext;
+        var up = await supabaseClient.storage.from(bucket).upload(fileName, file);
+        if (up.error) throw new Error('文件上传失败：' + up.error.message);
+        var pub = supabaseClient.storage.from(bucket).getPublicUrl(fileName);
+        var link = (pub.data && pub.data.publicUrl) || '';
+
+        // 直接写 site_items，并带上 course_id + 归属信息（RLS 要求 owner_id = 当前用户）
+        await p0Fetch('/api/items', {
+            method: 'POST',
+            body: {
+                id: Date.now(),
+                kind: 'doc',
+                name: name,
+                type: document.getElementById('p0-cu-type').value || '学生笔记',
+                link: link,
+                course_id: Number(courseId),
+                owner_id: currentUser.id,
+                owner_email: currentUser.email
+            }
+        });
+
+        p0Toast('资料已上传到这门课', 'ok');
+        p0CloseModal();
+        P0.loaded.courses = false;
+        p0LoadCourses();
+        p0OpenCourse(courseId);
+    } catch (e) {
+        p0Toast(e.message || '上传失败', 'err');
+        if (btn) { btn.disabled = false; btn.textContent = '上传并发布'; }
+    }
 }
 
 function p0TrackDoc(id) {
@@ -661,6 +727,332 @@ async function p0CloseTeam(teamId) {
     } catch (e) {
         p0Toast(e.message || '操作失败', 'err');
     }
+}
+
+/* ---------------- 失物招领 ---------------- */
+
+async function p0LoadLostFound() {
+    var sec = document.getElementById('p0-lostfound');
+    if (!sec) return;
+    sec.innerHTML = '<div class="p0-panel"><div class="p0-loading">正在加载失物招领…</div></div>';
+    try {
+        var qs = '/api/lostfound?kind=' + encodeURIComponent(P0.lfKind);
+        if (P0.lfQ) qs += '&q=' + encodeURIComponent(P0.lfQ);
+        var data = await p0Fetch(qs);
+        P0.lostfound = data.items || [];
+        P0.loaded.lostfound = true;
+        p0RenderLostFound();
+    } catch (e) {
+        sec.innerHTML = '<div class="p0-panel">' + p0ErrorHtml(e) + '</div>';
+    }
+}
+
+function p0RenderLostFound() {
+    var sec = document.getElementById('p0-lostfound');
+    if (!sec) return;
+
+    var tabs = [['all', '全部'], ['lost', '🔴 我丢了'], ['found', '🟢 我捡到了']].map(function (k) {
+        return '<button class="p0-subtab' + (P0.lfKind === k[0] ? ' active' : '') + '" onclick="p0LFKind(\'' + k[0] + '\')">' + k[1] + '</button>';
+    }).join('');
+
+    var cards = P0.lostfound.map(function (it) {
+        var img = it.image_url
+            ? '<img class="p0-lf-thumb" src="' + p0Esc(p0Safe(it.image_url)) + '" loading="lazy" decoding="async" alt="">'
+            : '<div class="p0-lf-thumb p0-lf-noimg">🔍</div>';
+        var status = it.status === 'resolved' ? '<span class="p0-chip green">已找回</span>'
+            : it.status === 'closed' ? '<span class="p0-chip gray">已关闭</span>'
+            : '<span class="p0-chip orange">寻找中</span>';
+        var mine = it.myClaim
+            ? '<span class="p0-chip gray">' + (it.myClaim === 'accepted' ? '已确认' : '已提交线索') + '</span>'
+            : '';
+        return '<div class="p0-card p0-lf-card" onclick="p0OpenLostFound(' + Number(it.id) + ')">' +
+            img +
+            '<div class="p0-lf-main">' +
+                '<div class="p0-card-title">' + p0Esc(it.title) + '</div>' +
+                '<div class="p0-meta">' + (it.kind === 'found' ? '🟢 我捡到了' : '🔴 我丢了') +
+                    (it.place ? ' · ' + p0Esc(it.place) : '') +
+                    (it.happened_at ? ' · ' + p0Esc(String(it.happened_at).slice(0, 10)) : '') + '</div>' +
+                '<div class="p0-card-foot">' + status + mine + (it.isOwner ? '<span class="p0-chip">我发布的</span>' : '') + '</div>' +
+            '</div></div>';
+    }).join('');
+
+    sec.innerHTML = '<div class="p0-panel">' +
+        '<div class="p0-head">' +
+            '<div><h3>🔍 失物招领</h3><p class="p0-sub">丢了 / 捡到东西发一条，有照片更容易认领 · 共 ' + P0.lostfound.length + ' 条</p></div>' +
+            '<div class="p0-actions">' +
+                '<input class="p0-input" id="p0-lf-q" value="' + p0Esc(P0.lfQ) + '" placeholder="搜物品 / 地点" onkeydown="if(event.key===\'Enter\'){p0LFSearch()}">' +
+                '<button class="p0-btn" onclick="p0LFSearch()">搜索</button>' +
+                '<button class="p0-btn primary" onclick="p0OpenLostFoundForm()">＋ 发布</button>' +
+            '</div>' +
+        '</div>' +
+        '<div class="p0-subtabs">' + tabs + '</div>' +
+        (P0.lostfound.length ? '<div class="p0-grid">' + cards + '</div>'
+            : '<div class="p0-empty">还没有失物信息。<br>发布一条「捡到校园卡」或「丢了耳机」，让同校同学能看到。</div>') +
+        '</div>';
+}
+
+function p0LFKind(kind) {
+    P0.lfKind = kind;
+    P0.loaded.lostfound = false;
+    p0LoadLostFound();
+}
+
+function p0LFSearch() {
+    var input = document.getElementById('p0-lf-q');
+    P0.lfQ = input ? input.value.trim() : '';
+    P0.loaded.lostfound = false;
+    p0LoadLostFound();
+}
+
+function p0OpenLostFoundForm() {
+    if (!p0IsLogged()) { if (typeof requireLogin === 'function') requireLogin('发布失物招领'); return; }
+    var body =
+        '<div class="p0-hint blue">写清楚「丢了什么 / 在哪丢的 / 什么时候」，再配一张照片，找回概率会高很多。<br>发布需要已认证的校园身份。</div>' +
+        '<div class="p0-row2">' +
+            '<div class="p0-field"><label>类型</label><select id="p0-lf-kind" class="p0-select"><option value="lost">🔴 我丢了</option><option value="found">🟢 我捡到了</option></select></div>' +
+            '<div class="p0-field"><label>发生日期</label><input id="p0-lf-date" class="p0-input" type="date"></div>' +
+        '</div>' +
+        '<div class="p0-field"><label>物品名称 *</label><input id="p0-lf-title" class="p0-input" maxlength="60" placeholder="如：校园卡 / 黑色耳机 / 一把钥匙"></div>' +
+        '<div class="p0-field"><label>地点</label><input id="p0-lf-place" class="p0-input" maxlength="60" placeholder="如：一食堂二楼 / 图书馆三楼"></div>' +
+        '<div class="p0-field"><label>照片（可选，建议上传）</label><input id="p0-lf-photo" class="p0-input" type="file" accept="image/*" style="background:#fff"></div>' +
+        '<div class="p0-field"><label>补充描述</label><textarea id="p0-lf-desc" class="p0-textarea" maxlength="800" placeholder="颜色、特征、里面有什么、怎么联系你（建议站内留言，不要直接留手机号）"></textarea></div>' +
+        '<div class="p0-modal-foot"><button class="p0-btn" onclick="p0CloseModal()">取消</button><button class="p0-btn primary" id="p0-lf-submit" onclick="p0SubmitLostFound()">发布</button></div>';
+    p0Modal(p0ModalShell('发布失物招领', body));
+}
+
+async function p0SubmitLostFound() {
+    var title = (document.getElementById('p0-lf-title').value || '').trim();
+    if (title.length < 2) { p0Toast('物品名称至少 2 个字', 'err'); return; }
+    var photoEl = document.getElementById('p0-lf-photo');
+    var file = photoEl && photoEl.files ? photoEl.files[0] : null;
+    var btn = document.getElementById('p0-lf-submit');
+    if (btn) { btn.disabled = true; btn.textContent = '发布中…'; }
+
+    try {
+        var imageUrl = '';
+        if (file) {
+            var maxMb = (typeof MAX_IMAGE_MB !== 'undefined') ? MAX_IMAGE_MB : 15;
+            if (file.size > maxMb * 1024 * 1024) throw new Error('照片超过 ' + maxMb + 'MB，请先压缩或换一张');
+            if (typeof supabaseClient === 'undefined' || !supabaseClient.storage) throw new Error('存储组件未加载，请刷新页面重试');
+            var uploadFile = file;
+            if (typeof compressImageFile === 'function') uploadFile = await compressImageFile(file, 1600, 0.82);
+            var bucket = (typeof BUCKET_NAME !== 'undefined') ? BUCKET_NAME : 'file';
+            var name = 'lostfound_' + Date.now() + '.jpg';
+            var up = await supabaseClient.storage.from(bucket).upload(name, uploadFile);
+            if (up.error) throw new Error('照片上传失败：' + up.error.message);
+            var pub = supabaseClient.storage.from(bucket).getPublicUrl(name);
+            imageUrl = (pub.data && pub.data.publicUrl) || '';
+        }
+
+        await p0Fetch('/api/lostfound', {
+            method: 'POST',
+            body: {
+                action: 'create',
+                kind: document.getElementById('p0-lf-kind').value,
+                title: title,
+                place: document.getElementById('p0-lf-place').value,
+                happened_at: document.getElementById('p0-lf-date').value,
+                desc: document.getElementById('p0-lf-desc').value,
+                image_url: imageUrl
+            }
+        });
+        p0Toast('已发布，等同学提供线索', 'ok');
+        p0CloseModal();
+        P0.loaded.lostfound = false;
+        p0LoadLostFound();
+    } catch (e) {
+        p0Toast(e.message || '发布失败', 'err');
+        if (btn) { btn.disabled = false; btn.textContent = '发布'; }
+    }
+}
+
+async function p0OpenLostFound(id) {
+    var seq = p0Modal(p0ModalShell('失物详情', '<div class="p0-loading">正在加载…</div>'));
+    try {
+        var d = await p0Fetch('/api/lostfound?id=' + encodeURIComponent(id));
+        if (seq !== P0.modalSeq) return;
+        p0RenderLostFoundDetail(d);
+    } catch (e) {
+        if (seq !== P0.modalSeq) return;
+        p0Modal(p0ModalShell('失物详情', p0ErrorHtml(e)));
+    }
+}
+
+function p0RenderLostFoundDetail(d) {
+    var it = d.item || {};
+    var claims = d.claims || [];
+    var isOwner = !!d.isOwner;
+    var id = Number(it.id);
+    var open = it.status === 'open';
+
+    var statusText = it.status === 'resolved' ? '✅ 已找回' : it.status === 'closed' ? '已关闭' : '寻找中';
+    var head = '<div class="p0-lf-detail-head">' +
+        '<div class="p0-card-foot">' +
+            '<span class="p0-chip ' + (it.kind === 'found' ? 'green' : 'red') + '">' + (it.kind === 'found' ? '🟢 我捡到了' : '🔴 我丢了') + '</span>' +
+            '<span class="p0-chip ' + (it.status === 'open' ? 'orange' : 'gray') + '">' + statusText + '</span>' +
+        '</div>' +
+        '<div class="p0-meta">' + p0Esc([it.place, it.happened_at ? String(it.happened_at).slice(0, 10) : '', it.owner_nickname ? 'by ' + it.owner_nickname : ''].filter(Boolean).join(' · ')) + '</div>' +
+    '</div>';
+
+    var img = it.image_url
+        ? '<img class="p0-lf-photo" src="' + p0Esc(p0Safe(it.image_url)) + '" loading="lazy" decoding="async" alt="失物照片">'
+        : '';
+
+    var claimHtml = '';
+    if (isOwner) {
+        claimHtml = '<div class="p0-section-title">📨 收到的线索 <span class="p0-chip gray">' + claims.length + '</span></div>' +
+            (claims.length ? '<div class="p0-list">' + claims.map(function (c) {
+                var st = c.status === 'accepted' ? '<span class="p0-chip green">已确认</span>'
+                    : c.status === 'rejected' ? '<span class="p0-chip red">已拒绝</span>'
+                    : '<span class="p0-chip orange">待处理</span>';
+                var btns = c.status === 'pending'
+                    ? '<button class="p0-btn sm primary" onclick="p0DecideClaim(' + Number(c.id) + ',\'accepted\',' + id + ')">确认</button>' +
+                      '<button class="p0-btn sm danger" onclick="p0DecideClaim(' + Number(c.id) + ',\'rejected\',' + id + ')">拒绝</button>'
+                    : '';
+                return '<div class="p0-list-item"><div class="p0-li-main">' +
+                    '<div class="p0-li-title">' + p0Esc(c.nickname || '同学') + (c.verified ? '<span class="p0-badge" style="margin-left:6px">✅ 已认证</span>' : '') + '</div>' +
+                    '<div class="p0-li-sub">' + p0Esc([c.college, c.major].filter(Boolean).join(' · ')) + ' ' + p0Date(c.created_at) + '</div>' +
+                    (c.message ? '<div class="p0-review-text">' + p0Esc(c.message) + '</div>' : '') +
+                    '</div><div class="p0-li-actions">' + st + btns + '</div></div>';
+            }).join('') + '</div>'
+            : '<div class="p0-empty">还没有人提供线索。把这条分享给同学，或者先等一等。</div>');
+    }
+
+    var actionHtml = '';
+    if (isOwner) {
+        actionHtml = '<div class="p0-actions" style="margin-top:14px">' +
+            (open ? '<button class="p0-btn primary" onclick="p0CloseLF(' + id + ',\'resolved\')">✅ 标记已找回</button>' : '') +
+            (open ? '<button class="p0-btn danger" onclick="p0CloseLF(' + id + ',\'closed\')">关闭信息</button>' : '') +
+        '</div>';
+    } else if (open) {
+        if (!p0IsLogged()) {
+            actionHtml = '<div class="p0-hint">登录并完成校园认证后，可以提交认领线索。<button class="p0-btn sm" onclick="p0CloseModal();openAuthModal(\'login\')">去登录</button></div>';
+        } else if (d.myClaim) {
+            actionHtml = '<div class="p0-hint blue">你已提交线索，状态：' +
+                (d.myClaim.status === 'accepted' ? '已确认' : d.myClaim.status === 'rejected' ? '未通过' : '等待发布者处理') + '</div>';
+        } else {
+            actionHtml = '<div class="p0-section-title">🙋 我捡到了 / 这是我的</div>' +
+                '<div class="p0-hint">留一句只有失主能对上的线索（如“卡套是蓝色的”“耳机盒上有贴纸”），发布者会看到。不要在这里留手机号。</div>' +
+                '<textarea id="p0-claim-msg" class="p0-textarea" maxlength="500" placeholder="描述你捡到的东西 / 证明这是你的东西"></textarea>' +
+                '<div class="p0-actions" style="margin-top:10px"><button class="p0-btn primary" onclick="p0SubmitClaim(' + id + ')">提交线索</button></div>';
+        }
+    }
+
+    var body = head + img +
+        '<p style="color:#33475e;line-height:1.8;font-size:14px;margin-top:12px;white-space:pre-wrap">' + p0Esc(it.desc_text || '发布者没有写补充描述。') + '</p>' +
+        actionHtml + claimHtml;
+
+    p0Modal(p0ModalShell(it.title || '失物详情', body));
+}
+
+async function p0SubmitClaim(itemId) {
+    var el = document.getElementById('p0-claim-msg');
+    var msg = el ? el.value.trim() : '';
+    try {
+        await p0Fetch('/api/lostfound', { method: 'POST', body: { action: 'claim', item_id: itemId, message: msg } });
+        p0Toast('线索已提交，等发布者处理', 'ok');
+        P0.loaded.lostfound = false;
+        p0LoadLostFound();
+        p0OpenLostFound(itemId);
+    } catch (e) {
+        p0Toast(e.message || '提交失败', 'err');
+    }
+}
+
+async function p0DecideClaim(claimId, decision, itemId) {
+    try {
+        await p0Fetch('/api/lostfound', { method: 'POST', body: { action: 'decide', claim_id: claimId, decision: decision } });
+        p0Toast(decision === 'accepted' ? '已确认，信息标记为已找回' : '已拒绝', 'ok');
+        P0.loaded.lostfound = false;
+        p0LoadLostFound();
+        p0OpenLostFound(itemId);
+    } catch (e) {
+        p0Toast(e.message || '操作失败', 'err');
+    }
+}
+
+async function p0CloseLF(itemId, status) {
+    var ok = true;
+    if (typeof askConfirm === 'function') {
+        ok = await askConfirm(status === 'resolved' ? '确认已经找回？信息会标记为「已找回」。' : '关闭后不再显示为寻找中，确定吗？',
+            { title: '失物招领', okText: '确定', icon: '🔍' });
+    }
+    if (!ok) return;
+    try {
+        await p0Fetch('/api/lostfound', { method: 'POST', body: { action: 'close', item_id: itemId, status: status } });
+        p0Toast('已更新', 'ok');
+        P0.loaded.lostfound = false;
+        p0LoadLostFound();
+        p0OpenLostFound(itemId);
+    } catch (e) {
+        p0Toast(e.message || '操作失败', 'err');
+    }
+}
+
+/* ---------------- 数据看板 ---------------- */
+
+function p0Num(n) {
+    var v = Number(n) || 0;
+    return v.toLocaleString('zh-CN');
+}
+
+async function p0LoadStats() {
+    var sec = document.getElementById('p0-stats');
+    if (!sec) return;
+    sec.innerHTML = '<div class="p0-panel"><div class="p0-loading">正在读取真实数据…</div></div>';
+    try {
+        var data = await p0Fetch('/api/stats');
+        P0.stats = data;
+        P0.loaded.stats = true;
+        p0RenderStats();
+    } catch (e) {
+        sec.innerHTML = '<div class="p0-panel">' + p0ErrorHtml(e) + '</div>';
+    }
+}
+
+function p0RenderStats() {
+    var sec = document.getElementById('p0-stats');
+    if (!sec) return;
+    var d = P0.stats || {};
+    var s = d.stats || {};
+    var top = d.topDocs || [];
+
+    var cards = [
+        ['👀', '累计访问', s.visits],
+        ['📅', '今日访问', s.visitsToday],
+        ['📥', '资料下载', s.downloads],
+        ['🤖', 'AI 提问', s.ai],
+        ['🎓', '课程数', s.courses],
+        ['🤝', '组队数', s.teams],
+        ['🔍', '失物发布', s.lostfound],
+        ['✅', '已找回', s.lostfoundResolved],
+        ['📚', '资料数', s.docs],
+        ['👥', '注册用户', s.users]
+    ].map(function (x) {
+        return '<div class="p0-stat-card"><div class="p0-stat-icon">' + x[0] + '</div>' +
+            '<div class="p0-stat-num">' + p0Num(x[2]) + '</div>' +
+            '<div class="p0-stat-label">' + x[1] + '</div></div>';
+    }).join('');
+
+    var max = top.reduce(function (m, x) { return Math.max(m, Number(x.views) || 0); }, 1);
+    var bars = top.length ? top.map(function (x) {
+        var w = Math.max(4, Math.round((Number(x.views) || 0) / max * 100));
+        return '<div class="p0-bar-row">' +
+            '<span class="p0-bar-name">' + p0Esc(x.name) + '</span>' +
+            '<span class="p0-bar-track"><i style="width:' + w + '%"></i></span>' +
+            '<span class="p0-bar-val">' + p0Num(x.views) + '</span></div>';
+    }).join('') : '<div class="p0-empty">还没有下载数据。等第一份资料被查看后，这里就会出现排名。</div>';
+
+    sec.innerHTML = '<div class="p0-panel">' +
+        '<div class="p0-head">' +
+            '<div><h3>📊 数据看板</h3><p class="p0-sub">站内真实埋点，60 秒缓存 · 更新于 ' + p0Esc(new Date(d.generatedAt || Date.now()).toLocaleString('zh-CN')) + '</p></div>' +
+            '<div class="p0-actions"><button class="p0-btn" onclick="p0LoadStats()">🔄 刷新</button></div>' +
+        '</div>' +
+        '<div class="p0-stat-grid">' + cards + '</div>' +
+        '<div class="p0-section-title">🔥 资料下载排行</div>' +
+        bars +
+        '<p class="p0-meta" style="margin-top:16px">数据来自 /api/track 的真实访问、下载和 AI 提问记录；不包含任何个人信息。</p>' +
+        '</div>';
 }
 
 /* ---------------- 我的 ---------------- */

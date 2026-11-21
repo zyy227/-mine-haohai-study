@@ -164,6 +164,26 @@
 .p0-progress { height: 6px; border-radius: 999px; background: #edf2fa; overflow: hidden; margin-top: 8px; }
 .p0-progress i { display: block; height: 100%; background: linear-gradient(90deg, #2f6fed, #6aa8ff); border-radius: 999px; }
 
+/* 失物招领 */
+.p0-lf-card { display: flex; gap: 12px; align-items: stretch; }
+.p0-lf-thumb { width: 108px; height: 84px; flex-shrink: 0; object-fit: cover; border-radius: 10px; background: #eef4ff; }
+.p0-lf-thumb.p0-lf-noimg { display: flex; align-items: center; justify-content: center; font-size: 28px; color: #9db4d6; }
+.p0-lf-main { min-width: 0; flex: 1; }
+.p0-lf-photo { display: block; width: 100%; max-height: 360px; object-fit: contain; background: #f6f9ff; border-radius: 12px; margin-top: 12px; }
+.p0-lf-detail-head { display: flex; flex-direction: column; gap: 6px; }
+
+/* 数据看板 */
+.p0-stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin: 4px 0 18px; }
+.p0-stat-card { background: #f7faff; border: 1px solid #e4edfb; border-radius: 14px; padding: 14px 12px; text-align: center; }
+.p0-stat-icon { font-size: 20px; line-height: 1; margin-bottom: 6px; }
+.p0-stat-num { font-size: 24px; font-weight: 800; color: #004085; line-height: 1.2; }
+.p0-stat-label { font-size: 12px; color: #7b8ca1; margin-top: 2px; }
+.p0-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 13px; }
+.p0-bar-name { width: 38%; min-width: 0; color: #33475e; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p0-bar-track { flex: 1; height: 10px; border-radius: 999px; background: #edf2fa; overflow: hidden; }
+.p0-bar-track i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #2f6fed, #6aa8ff); }
+.p0-bar-val { width: 52px; text-align: right; color: #6b7c93; font-variant-numeric: tabular-nums; }
+
 @media (max-width: 640px) {
     .p0-panel { padding: 14px; }
     .p0-head { flex-direction: column; }
