@@ -1,7 +1,7 @@
 {
-  "name": "浩海 study - 校园资源站",
+  "name": "浩海 study - 校园课程与组队",
   "short_name": "浩海study",
-  "description": "浩海校园资源站：资料共享、竞赛信息、校园美景与 AI 助手",
+  "description": "浩海校园站：课程资料、竞赛组队、校园互助与 AI 助手",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

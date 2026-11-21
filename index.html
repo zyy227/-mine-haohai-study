@@ -12,7 +12,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="浩海study">
     <link rel="apple-touch-icon" href="icon-192.png">
-    <title>浩海 study</title>
+    <link rel="stylesheet" href="assets/p0.css">
+    <title>浩海 study · 校园课程与组队</title>
     <style>
         /* ========== 全局与基础样式 ========== */
         /* 统一盒模型：修复手机上 width:100vw + 内边距导致搜索框右侧按钮被挤出屏幕 */
@@ -77,7 +78,7 @@
 
 
         /* ========== 主界面 ========== */
-        #main-screen { display: none; opacity: 0; transition: opacity 0.8s ease; min-height: 100vh; background-image: url('二界面背景.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
+        #main-screen { display: none; opacity: 0; transition: opacity 0.8s ease; min-height: 100vh; background-image: url('bg.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
         .navbar { position: sticky; top: 0; z-index: 800; background: rgba(0, 64, 133, 0.75); backdrop-filter: blur(10px); color: white; padding: 15px 20px; display: flex; justify-content: center; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .navbar h2 { margin: 0; font-size: 32px; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
         .navbar h2 .study-text { font-size: 32px; }
@@ -461,10 +462,9 @@
         <!-- 分类导航：位于搜索框上方、偏右 -->
         <div class="nav-tabs" id="nav-tabs">
             <button class="nav-tab active" data-page="home" onclick="switchNavPage('home')">首页</button>
-            <button class="nav-tab" data-page="other" onclick="switchNavPage('other')">其他</button>
-            <button class="nav-tab" data-page="submit" onclick="switchNavPage('submit')">我要投稿</button>
-            <button class="nav-tab" data-page="about" onclick="switchNavPage('about')">关于我们</button>
-            <button class="nav-tab" data-page="mine" onclick="switchNavPage('mine')">我的</button>
+            <button class="nav-tab" data-page="courses" onclick="p0Enter('courses')">🎓 课程</button>
+            <button class="nav-tab" data-page="teams" onclick="p0Enter('teams')">🤝 组队</button>
+            <button class="nav-tab" data-page="mine" onclick="p0Enter('mine')">我的</button>
         </div>
         <!-- 首页（原有起始内容） -->
         <div class="nav-page active" id="page-home">
@@ -519,25 +519,14 @@
                 </div>
             </div>
 
+            <!-- 关于我们（轻量版，放在首页底部，评委/新用户都能看到） -->
+            <div class="p0-about">
+                <b>关于浩海 study</b>
+                <span>一个由学生自己维护的校园网络：把课程资料、竞赛组队、校园互助沉淀下来，让每个同学都能找到自己要的那一份。</span>
+            </div>
+
         </div>
         </div><!-- /page-home -->
-
-        <!-- 其他（占位空白页） -->
-        <div class="nav-page" id="page-other">
-            <div class="page-placeholder"><div class="ph-icon">🧩</div><div class="ph-title">其他</div><div class="ph-desc">页面建设中，敬请期待</div></div>
-        </div>
-        <!-- 我要投稿（占位空白页） -->
-        <div class="nav-page" id="page-submit">
-            <div class="page-placeholder"><div class="ph-icon">✍️</div><div class="ph-title">我要投稿</div><div class="ph-desc">页面建设中，敬请期待</div></div>
-        </div>
-        <!-- 关于我们（占位空白页） -->
-        <div class="nav-page" id="page-about">
-            <div class="page-placeholder"><div class="ph-icon">ℹ️</div><div class="ph-title">关于我们</div><div class="ph-desc">页面建设中，敬请期待</div></div>
-        </div>
-        <!-- 我的（占位空白页） -->
-        <div class="nav-page" id="page-mine">
-            <div class="page-placeholder"><div class="ph-icon">👤</div><div class="ph-title">我的</div><div class="ph-desc">页面建设中，敬请期待</div></div>
-        </div>
     </div>
 
     <!-- ================= 主界面 ================= -->
@@ -552,6 +541,13 @@
                 <span class="sync-dot" id="sync-dot"></span>
                 <span id="sync-text">正在连接云端…</span>
                 <button class="sync-refresh" id="sync-refresh-btn" onclick="refreshCloud()">🔄 刷新</button>
+            </div>
+            <!-- 模块切换栏：资料/比赛/美景 ⇄ 课程中心 / 组队广场 / 我的 -->
+            <div class="p0-bar" id="p0-bar">
+                <button class="p0-tab active" data-mod="all" onclick="p0Show('all')">📚 资料 · 比赛 · 美景</button>
+                <button class="p0-tab" data-mod="courses" onclick="p0Show('courses')">🎓 课程中心</button>
+                <button class="p0-tab" data-mod="teams" onclick="p0Show('teams')">🤝 组队广场</button>
+                <button class="p0-tab" data-mod="mine" onclick="p0Show('mine')">👤 我的</button>
             </div>
             <div class="dashboard">
                 <div class="data-item"><h3 id="stat-doc">0</h3><p>共享资料</p></div>
@@ -570,6 +566,7 @@
                         <div class="form-group"><label>选择本地文件</label><input type="file" id="doc-file" style="background: white;"></div>
                         <div class="form-group"><label>资料名称</label><input type="text" id="doc-name" placeholder="如：C语言期中复习.pptx"></div>
                         <div class="form-group"><label>资料类型</label><select id="doc-type"><option value="老师上传">老师课件</option><option value="学生笔记">学生笔记</option></select></div>
+                        <div class="form-group"><label>所属课程（可选，便于按课查找）</label><select id="doc-course"><option value="">不关联课程</option></select></div>
                         <button class="submit-btn" id="upload-submit-btn" onclick="uploadDoc()">确认发布</button>
                     </div>
                     <div id="doc-list"></div>
@@ -603,6 +600,11 @@
                     <div id="scenery-list" class="scenery-grid"></div>
                 </div>
             </div>
+
+            <!-- P0 新增模块：课程中心 / 组队广场 / 我的（内容由 assets/p0.js 渲染） -->
+            <section class="p0-view" id="p0-courses"></section>
+            <section class="p0-view" id="p0-teams"></section>
+            <section class="p0-view" id="p0-mine"></section>
         </div>
     </div>
 
@@ -954,6 +956,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             currentUser = null; currentToken = '';
             renderAuthUI();
             renderAll();
+            if (typeof p0OnAuthChange === 'function') p0OnAuthChange();
             await loadFromCloud();
             alert('已退出登录，当前为游客模式（只能浏览）。');
         }
@@ -973,6 +976,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             } catch (_) { currentUser = null; currentToken = ''; }
             renderAuthUI();
             renderAll();
+            if (typeof p0OnAuthChange === 'function') p0OnAuthChange();
         }
 
         // 渲染导航栏 / 开始界面的用户状态
@@ -1058,6 +1062,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
                     }
                     renderAuthUI();
                     renderAll();
+                    if (typeof p0OnAuthChange === 'function') p0OnAuthChange();
                 });
             }
         } catch (_) {}
@@ -1564,7 +1569,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             const owner_email = row.owner_email || '';
             const status = row.status || 'approved';
             const view_count = Number(row.view_count) || 0;
-            if (row.kind === 'doc') return { id, name: row.name || '', type: row.type || '老师上传', link: row.link || '', owner_id, owner_email, status, view_count };
+            if (row.kind === 'doc') return { id, name: row.name || '', type: row.type || '老师上传', link: row.link || '', course_id: row.course_id || null, owner_id, owner_email, status, view_count };
             if (row.kind === 'comp') return { id, title: row.name || '', link: row.link || '', owner_id, owner_email, status, view_count };
             return { id, desc: row.desc_text || '', link: row.link || '', owner_id, owner_email, status, view_count };
         }
@@ -1574,7 +1579,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             const owner_id = item.owner_id || (currentUser ? currentUser.id : null);
             const owner_email = item.owner_email || (currentUser ? currentUser.email : null);
             let row;
-            if (kind === 'doc') row = { id: item.id, kind, name: item.name, type: item.type, link: item.link || '' };
+            if (kind === 'doc') row = { id: item.id, kind, name: item.name, type: item.type, link: item.link || '', course_id: item.course_id || null };
             else if (kind === 'comp') row = { id: item.id, kind, name: item.title, link: item.link || '' };
             else row = { id: item.id, kind, desc_text: item.desc || '', link: item.link || '' };
             row.owner_id = owner_id; row.owner_email = owner_email;
@@ -2148,6 +2153,8 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             let fileInput = document.getElementById("doc-file");
             let name = document.getElementById("doc-name").value;
             let type = document.getElementById("doc-type").value;
+            let courseEl = document.getElementById("doc-course");
+            let courseId = (courseEl && courseEl.value) ? Number(courseEl.value) : null;
             let submitBtn = document.getElementById("upload-submit-btn");
             if (name.trim() === "") { alert("请填写资料名称！"); return; }
             let file = fileInput.files[0];
@@ -2170,7 +2177,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
                     submitBtn.innerText = "确认发布"; submitBtn.disabled = false;
                 }
             } else { alert("请先选择要上传的文件！"); return; }
-            const newItem = { id: Date.now(), name: name, type: type, link: fileUrl };
+            const newItem = { id: Date.now(), name: name, type: type, link: fileUrl, course_id: courseId };
             docs.unshift(newItem);
             fileInput.value = ""; document.getElementById("doc-name").value = ""; document.getElementById("upload-form-container").style.display = "none";
             const ok = await insertRow('doc', newItem);
@@ -2327,5 +2334,6 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             </div>
         </div>
     </div>
+<script src="assets/p0.js"></script>
 </body>
 </html>
