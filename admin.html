@@ -106,6 +106,18 @@
         .toast.out { animation: toastOut .3s ease forwards; }
         @keyframes toastIn { from { transform: translateX(30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes toastOut { to { transform: translateX(30px); opacity: 0; } }
+        /* 管理端内容预览弹窗 */
+        .op.view { background: #e6f4ff; color: #0958d9; }
+        #preview-modal { display: none; position: fixed; inset: 0; z-index: 10025; background: rgba(0,0,0,.72); align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
+        .preview-box { background: #fff; width: 100%; max-width: 860px; max-height: 92vh; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 16px 48px rgba(0,0,0,.3); animation: popIn .25s ease; }
+        .preview-head { padding: 14px 18px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: none; }
+        .preview-head .pt { font-weight: bold; font-size: 15px; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .preview-head .px { cursor: pointer; font-size: 24px; color: #999; line-height: 1; flex: none; }
+        .preview-body { flex: 1; overflow: auto; background: #f5f6f8; display: flex; align-items: center; justify-content: center; min-height: 240px; padding: 16px; }
+        .preview-body img { max-width: 100%; max-height: 72vh; object-fit: contain; border-radius: 8px; }
+        .preview-body iframe { width: 100%; height: 72vh; border: none; background: #fff; }
+        .preview-fallback { text-align: center; color: #666; line-height: 2; }
+        .preview-fallback a { display: inline-block; margin-top: 10px; padding: 10px 20px; background: #5b3bb5; color: #fff; border-radius: 8px; text-decoration: none; }
     </style>
 </head>
 <body>
@@ -387,6 +399,7 @@
             try {
                 const d = await api('items');
                 const items = d.items || [];
+                window.__adminItems = items;   // 缓存供预览弹窗按 id 查找
                 const kindName = { doc:'📚资料', comp:'🏆比赛', scenery:'🌸美景' };
                 if (!items.length) { box.innerHTML = '<div class="empty">暂无内容</div>'; return; }
                 box.innerHTML = '<table><thead><tr><th>类型</th><th>名称</th><th>发布者</th><th>状态</th><th>查看</th><th>操作</th></tr></thead><tbody>' +
@@ -397,7 +410,8 @@
                         const op = it.status === 'takedown'
                             ? `<button class="op restore" onclick="moderate('restore',${it.id})">恢复</button>`
                             : `<button class="op down" onclick="moderate('takedown',${it.id})">下架</button>`;
-                        return `<tr><td>${kindName[it.kind]||it.kind}</td><td>${esc(name)}</td><td>${esc((it.owner_email||'平台').split('@')[0])}</td><td>${status}</td><td>${it.view_count||0}</td><td>${op}<button class="op del" onclick="moderate('delete',${it.id})">删除</button></td></tr>`;
+                        const viewBtn = `<button class="op view" onclick="previewItem(${it.id})">预览</button>`;
+                        return `<tr><td>${kindName[it.kind]||it.kind}</td><td>${esc(name)}</td><td>${esc((it.owner_email||'平台').split('@')[0])}</td><td>${status}</td><td>${it.view_count||0}</td><td>${viewBtn}${op}<button class="op del" onclick="moderate('delete',${it.id})">删除</button></td></tr>`;
                     }).join('') + '</tbody></table>';
             } catch (e) {
                 box.innerHTML = '<div class="empty" style="color:#cf1322">加载失败：' + esc(e.message) + '</div>';
@@ -418,6 +432,52 @@
                 loadStats();
             } catch (e) { alert('操作失败：' + e.message); }
         }
+
+        // ===== 管理端内容预览（不用跳回用户界面） =====
+        function safeUrl(u) {
+            const s = String(u || '').trim();
+            return /^(https?:\/\/|\/)/i.test(s) ? s : '';
+        }
+        function previewItem(id) {
+            const items = window.__adminItems || [];
+            const it = items.find(x => String(x.id) === String(id));
+            if (!it) { alert('未找到该内容，请刷新列表后重试'); return; }
+            const url = safeUrl(it.link);
+            const kind = it.kind || '';
+            const title = it.name || it.desc_text || (kind === 'scenery' ? '校园美景' : '未命名');
+            const modal = document.getElementById('preview-modal');
+            document.getElementById('preview-title').textContent = title;
+            const body = document.getElementById('preview-body');
+            if (!url) {
+                body.innerHTML = '<div class="preview-fallback">该内容没有可预览的链接。<br>仅登记了文字信息，没有上传文件。</div>';
+            } else {
+                const isImg = kind === 'scenery' || /\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(url);
+                const isPdf = /\.(pdf)(\?|$)/i.test(url) || /\/file\/[^/]+/i.test(url);
+                if (isImg) {
+                    body.innerHTML = '<img src="' + esc(url) + '" alt="' + esc(title) + '">';
+                } else if (isPdf) {
+                    body.innerHTML = '<iframe src="' + esc(url) + '#toolbar=1" title="' + esc(title) + '"></iframe>';
+                } else {
+                    body.innerHTML = '<div class="preview-fallback">此类型无法内嵌预览。<br><a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">在新标签打开 ↗</a></div>';
+                }
+            }
+            modal.style.display = 'flex';
+        }
+        function closePreview() {
+            const m = document.getElementById('preview-modal');
+            if (m) { m.style.display = 'none'; document.getElementById('preview-body').innerHTML = ''; }
+        }
+        // 预览弹窗：点遮罩关闭 + Esc 关闭（懒绑定，等 DOM 就绪）
+        document.addEventListener('DOMContentLoaded', function () {
+            const m = document.getElementById('preview-modal');
+            if (m) m.addEventListener('click', function (e) { if (e.target === m) closePreview(); });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    const pm = document.getElementById('preview-modal');
+                    if (pm && pm.style.display === 'flex') closePreview();
+                }
+            });
+        });
 
         // ===== 用户 =====
         async function loadUsers() {
@@ -440,6 +500,17 @@
 
     <!-- 界面内提示容器 -->
     <div id="toast-wrap" aria-live="polite"></div>
+
+    <!-- 管理端内容预览弹窗 -->
+    <div id="preview-modal" role="dialog" aria-modal="true" aria-labelledby="preview-title">
+        <div class="preview-box">
+            <div class="preview-head">
+                <div class="pt" id="preview-title">预览</div>
+                <div class="px" onclick="closePreview()">×</div>
+            </div>
+            <div class="preview-body" id="preview-body"></div>
+        </div>
+    </div>
 
     <!-- 自定义确认弹窗 -->
     <div id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
