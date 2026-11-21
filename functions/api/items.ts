@@ -39,13 +39,19 @@ export async function onRequest({ request, env }) {
 
     try {
         if (method === 'GET') {
-            const upstream = await fetch(restUrl + '?select=*&order=id.desc', {
+            // 分页上限：默认 1000 条，和前端 ITEM_FETCH_LIMIT 保持一致
+            // 超过上限时返回 truncated:true，前端会提示"仅显示最近 N 条"，不再静默丢数据
+            const pageUrl = new URL(request.url);
+            const rawLimit = Number(pageUrl.searchParams.get('limit'));
+            const limit = Math.min(Math.max(Number.isFinite(rawLimit) && rawLimit > 0 ? Math.floor(rawLimit) : 1000, 1), 1000);
+            const upstream = await fetch(restUrl + '?select=*&order=id.desc&limit=' + limit, {
                 headers: baseHeaders,
                 cf: { cacheTtl: 0 }
             });
             const data = await upstream.json();
             if (!upstream.ok) return Response.json(data, { status: upstream.status });
-            return Response.json({ items: Array.isArray(data) ? data : [] });
+            const items = Array.isArray(data) ? data : [];
+            return Response.json({ items: items, limit: limit, truncated: items.length >= limit });
         }
 
         if (method === 'POST' || method === 'PATCH') {

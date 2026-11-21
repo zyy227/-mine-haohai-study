@@ -282,17 +282,36 @@ export async function onRequest({ request, env }) {
                 return json({ error: '队伍已满员，无法再通过申请' }, 400);
             }
 
-            await writeRows(
-                SUPABASE_URL, SUPABASE_KEY, token,
-                '/team_applications?id=eq.' + appId, 'PATCH',
-                { status: decision }, 'return=minimal'
-            );
-
             if (decision === 'accepted') {
+                // 原子操作：数据库里一次完成「校验队长 / 校验满员 / 人数 +1 / 申请改为 accepted」
+                // 这样队长双击、或两个标签页同时通过时，不会出现人数加错或超员
+                try {
+                    await writeRows(
+                        SUPABASE_URL, SUPABASE_KEY, token,
+                        '/rpc/accept_team_application', 'POST',
+                        { p_app_id: appId }, 'return=minimal'
+                    );
+                } catch (e) {
+                    // 兜底：如果数据库还没执行新版 v4（找不到这个函数），退回旧的两步写法。
+                    // 并发下人数仍可能不准，但至少功能可用；执行完 v4 后就会走上面的原子函数。
+                    const msg = String((e && e.message) || '');
+                    if (!/Could not find the function|PGRST202|does not exist|404/i.test(msg)) throw e;
+                    await writeRows(
+                        SUPABASE_URL, SUPABASE_KEY, token,
+                        '/team_applications?id=eq.' + appId, 'PATCH',
+                        { status: 'accepted' }, 'return=minimal'
+                    );
+                    await writeRows(
+                        SUPABASE_URL, SUPABASE_KEY, token,
+                        '/teams?id=eq.' + Number(app.team_id), 'PATCH',
+                        { joined_count: Number(team.joined_count) + 1 }, 'return=minimal'
+                    );
+                }
+            } else {
                 await writeRows(
                     SUPABASE_URL, SUPABASE_KEY, token,
-                    '/teams?id=eq.' + Number(app.team_id), 'PATCH',
-                    { joined_count: Number(team.joined_count) + 1 }, 'return=minimal'
+                    '/team_applications?id=eq.' + appId, 'PATCH',
+                    { status: 'rejected' }, 'return=minimal'
                 );
             }
             return json({ ok: true, decision: decision });
