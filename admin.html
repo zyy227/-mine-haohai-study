@@ -5,8 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>管理后台 · 浩海 study</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>window.supabase||document.write('<script src="https://unpkg.com/@supabase/supabase-js@2"><\/script>');</script>
+    <!-- Supabase SDK：优先从本站加载（不依赖国外 CDN） -->
+    <script src="vendor/supabase.js"></script>
+    <script>window.supabase||document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script>
     <script>
     document.addEventListener('contextmenu', function(e){ e.preventDefault(); });
     document.addEventListener('keydown', function(e){
@@ -79,6 +80,19 @@
             .wrap { margin: 14px auto; }
             th, td { padding: 8px 4px; font-size: 12px; }
         }
+        /* 自定义确认弹窗（替代浏览器原生 confirm 黑框） */
+        #confirm-modal { display: none; position: fixed; inset: 0; z-index: 10020; background: rgba(0,0,0,.5); align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
+        .confirm-box { background: #fff; width: 100%; max-width: 380px; border-radius: 16px; padding: 24px; box-shadow: 0 16px 48px rgba(0,0,0,.28); animation: popIn .25s ease; text-align: center; }
+        .confirm-icon { width: 60px; height: 60px; border-radius: 50%; background: #fff1f0; color: #e74c3c; display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto 16px; }
+        .confirm-title { font-size: 17px; font-weight: bold; color: #222; margin-bottom: 8px; }
+        .confirm-msg { font-size: 14px; color: #666; line-height: 1.7; margin-bottom: 22px; word-break: break-word; }
+        .confirm-btns { display: flex; gap: 12px; }
+        .confirm-btns button { flex: 1; padding: 11px 0; border: none; border-radius: 9px; font-size: 14px; font-weight: bold; cursor: pointer; transition: filter .2s; }
+        .confirm-btns button:hover { filter: brightness(.95); }
+        .confirm-cancel { background: #f0f2f5; color: #555; }
+        .confirm-ok { background: #5b3bb5; color: #fff; }
+        .confirm-ok.danger { background: linear-gradient(135deg, #ff6b6b, #e74c3c); }
+        @keyframes popIn { from { transform: scale(.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
 </head>
 <body>
@@ -151,6 +165,42 @@
         function msg(t) { document.getElementById('gate-msg').textContent = t || ''; }
         function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
         function fmtDate(s) { if (!s) return '-'; const d = new Date(s); return isNaN(d) ? '-' : d.toLocaleDateString('zh-CN'); }
+
+        // 自定义确认弹窗：替代浏览器原生 confirm 黑框
+        function askConfirm(message, opts) {
+            opts = opts || {};
+            return new Promise(resolve => {
+                const modal = document.getElementById('confirm-modal');
+                const iconEl = document.getElementById('confirm-icon');
+                const titleEl = document.getElementById('confirm-title');
+                const msgEl = document.getElementById('confirm-msg');
+                const okBtn = document.getElementById('confirm-ok');
+                const cancelBtn = document.getElementById('confirm-cancel');
+                if (!modal) { resolve(window.confirm(message)); return; }
+                iconEl.textContent = opts.icon || '🗑️';
+                titleEl.textContent = opts.title || '确定操作？';
+                msgEl.textContent = message || '';
+                okBtn.textContent = opts.okText || '确定';
+                cancelBtn.textContent = opts.cancelText || '取消';
+                okBtn.className = 'confirm-ok' + (opts.danger === false ? '' : ' danger');
+                modal.style.display = 'flex';
+                const finish = val => {
+                    modal.style.display = 'none';
+                    okBtn.onclick = null; cancelBtn.onclick = null; modal.onclick = null;
+                    document.removeEventListener('keydown', onKey);
+                    resolve(val);
+                };
+                const onKey = e => {
+                    if (e.key === 'Escape') finish(false);
+                    else if (e.key === 'Enter') finish(true);
+                };
+                okBtn.onclick = () => finish(true);
+                cancelBtn.onclick = () => finish(false);
+                modal.onclick = e => { if (e.target === modal) finish(false); };
+                document.addEventListener('keydown', onKey);
+                okBtn.focus();
+            });
+        }
 
         // 超时保护：网络卡住时不再永远停在"登录中"
         function withTimeout(promise, ms, label) {
@@ -315,7 +365,12 @@
 
         async function moderate(action, id) {
             const names = { takedown:'下架', restore:'恢复公开', delete:'删除' };
-            if (!confirm('确定要「' + names[action] + '」这条内容吗？')) return;
+            const isDelete = action === 'delete';
+            const opts = isDelete
+                ? { title: '确定删除？', okText: '确定删除', icon: '🗑️', danger: true }
+                : { title: '确定' + names[action] + '？', okText: '确定' + names[action], icon: action === 'restore' ? '♻️' : '⬇️', danger: false };
+            const verb = isDelete ? '删除后无法恢复' : (action === 'restore' ? '恢复后所有人都能看到' : '下架后用户将无法看到');
+            if (!await askConfirm('确定要「' + names[action] + '」这条内容吗？' + verb + '。', opts)) return;
             try {
                 await api('moderate', 'POST', { action, id });
                 loadItems();
@@ -341,5 +396,18 @@
 
         bootstrap();
     </script>
+
+    <!-- 自定义确认弹窗 -->
+    <div id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+        <div class="confirm-box">
+            <div class="confirm-icon" id="confirm-icon">🗑️</div>
+            <div class="confirm-title" id="confirm-title">确定操作？</div>
+            <div class="confirm-msg" id="confirm-msg"></div>
+            <div class="confirm-btns">
+                <button class="confirm-cancel" id="confirm-cancel">取消</button>
+                <button class="confirm-ok danger" id="confirm-ok">确定</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

@@ -345,11 +345,25 @@
             .filter-trigger { font-size: 11px; padding: 6px 7px; }
             .search-input { font-size: 14px; padding: 8px; }
         }
+
+        /* 自定义确认弹窗（替代浏览器原生 confirm 黑框） */
+        #confirm-modal { display: none; position: fixed; inset: 0; z-index: 10020; background: rgba(0,0,0,.5); align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
+        .confirm-box { background: #fff; width: 100%; max-width: 380px; border-radius: 16px; padding: 24px; box-shadow: 0 16px 48px rgba(0,0,0,.28); animation: popIn .25s ease; text-align: center; }
+        .confirm-icon { width: 60px; height: 60px; border-radius: 50%; background: #fff1f0; color: #e74c3c; display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto 16px; }
+        .confirm-title { font-size: 17px; font-weight: bold; color: #222; margin-bottom: 8px; }
+        .confirm-msg { font-size: 14px; color: #666; line-height: 1.7; margin-bottom: 22px; word-break: break-word; }
+        .confirm-btns { display: flex; gap: 12px; }
+        .confirm-btns button { flex: 1; padding: 11px 0; border: none; border-radius: 9px; font-size: 14px; font-weight: bold; cursor: pointer; transition: filter .2s; }
+        .confirm-btns button:hover { filter: brightness(.95); }
+        .confirm-cancel { background: #f0f2f5; color: #555; }
+        .confirm-ok { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+        .confirm-ok.danger { background: linear-gradient(135deg, #ff6b6b, #e74c3c); }
     </style>
     
     <!-- SDK 多 CDN 同步兜底：jsdelivr 挂了立即同步切换到 unpkg，解决"登录组件未加载" -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>window.supabase||document.write('<script src="https://unpkg.com/@supabase/supabase-js@2"><\/script>');</script>
+    <!-- Supabase SDK：优先从本站加载（不依赖国外 CDN，国内手机/电脑均可稳定登录注册） -->
+    <script src="vendor/supabase.js"></script>
+    <script>window.supabase||document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');</script>
     <!-- Markdown 渲染 + XSS 消毒，思路参考 DeepSeek chat-demo 的 markdown 服务 -->
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
     <script>window.marked||document.write('<script src="https://unpkg.com/marked@12.0.2/marked.min.js"><\/script>');</script>
@@ -640,6 +654,48 @@
     <!-- ================= 核心逻辑 ================= -->
     <script>
         // ==========================================
+        // 自定义确认弹窗：替代浏览器原生 confirm 黑框
+        // 用法：if (!await askConfirm('提示文字')) return;
+        // opts: { title, okText, cancelText, icon, danger }
+        // ==========================================
+        function askConfirm(message, opts) {
+            opts = opts || {};
+            return new Promise(resolve => {
+                const modal = document.getElementById('confirm-modal');
+                const iconEl = document.getElementById('confirm-icon');
+                const titleEl = document.getElementById('confirm-title');
+                const msgEl = document.getElementById('confirm-msg');
+                const okBtn = document.getElementById('confirm-ok');
+                const cancelBtn = document.getElementById('confirm-cancel');
+                if (!modal) { resolve(window.confirm(message)); return; }
+
+                iconEl.textContent = opts.icon || '🗑️';
+                titleEl.textContent = opts.title || '确定删除？';
+                msgEl.textContent = message || '';
+                okBtn.textContent = opts.okText || '确定删除';
+                cancelBtn.textContent = opts.cancelText || '取消';
+                okBtn.className = 'confirm-ok' + (opts.danger === false ? '' : ' danger');
+                modal.style.display = 'flex';
+
+                const finish = val => {
+                    modal.style.display = 'none';
+                    okBtn.onclick = null; cancelBtn.onclick = null; modal.onclick = null;
+                    document.removeEventListener('keydown', onKey);
+                    resolve(val);
+                };
+                const onKey = e => {
+                    if (e.key === 'Escape') finish(false);
+                    else if (e.key === 'Enter') finish(true);
+                };
+                okBtn.onclick = () => finish(true);
+                cancelBtn.onclick = () => finish(false);
+                modal.onclick = e => { if (e.target === modal) finish(false); };
+                document.addEventListener('keydown', onKey);
+                okBtn.focus();
+            });
+        }
+
+        // ==========================================
         // ⚠️ 配置区
         // ==========================================
         // 1. Supabase 配置
@@ -914,10 +970,13 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
         }
 
         // 需要登录才能操作时调用；游客则弹登录框并返回 false
+        // 注意：本函数必须保持同步返回 false（调用方靠它中止操作），故确认框用异步 then 处理
         function requireLogin(actionName) {
             if (currentUser) return true;
             if (actionName) {
-                if (confirm('「' + actionName + '」需要先登录，是否现在登录？')) openAuthModal('register');
+                askConfirm('「' + actionName + '」需要先登录，是否现在登录？', {
+                    title: '需要登录', okText: '去登录', icon: '🔐', danger: false
+                }).then(ok => { if (ok) openAuthModal('register'); });
             } else {
                 openAuthModal('register');
             }
@@ -1841,8 +1900,8 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             alert('草稿已保存（仅你可见）');
         }
 
-        function deleteDraftById(id) {
-            if (!confirm('确定删除这份草稿？此操作不可恢复。')) return;
+        async function deleteDraftById(id) {
+            if (!await askConfirm('确定删除这份草稿？删除后无法恢复。')) return;
             drafts = drafts.filter(x => x.id !== id);
             saveDrafts();
             renderDraftBox();
@@ -1871,7 +1930,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             if (!d) return;
             const registry = ACTION_REGISTRY[d.type];
             if (!registry) { alert('不支持的内容类型'); return; }
-            if (!confirm('确定发布《' + d.title + '》吗？\n发布后所有人都能在「' + registry.label + '」里看到。')) return;
+            if (!await askConfirm('确定发布《' + d.title + '》吗？发布后所有人都能在「' + registry.label + '」里看到。', { title: '确认发布', okText: '确认发布', icon: '📤', danger: false })) return;
             const btn = document.querySelector('button[onclick="publishDraftById(' + id + ')"]');
             if (btn) { btn.disabled = true; btn.textContent = '⏳ 发布中...'; }
             try {
@@ -2106,7 +2165,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
         async function deleteDoc(id) {
             const item = docs.find(x => x.id === id);
             if (!guardOwner(item)) return;
-            if (!confirm('确定删除「' + item.name + '」？')) return;
+            if (!await askConfirm('确定删除「' + (item.name || '未命名') + '」？删除后无法恢复。')) return;
             docs = docs.filter(x => x.id !== id);
             await deleteRow('doc', id);
             renderAll();
@@ -2114,7 +2173,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
         async function deleteComp(id) {
             const item = competitions.find(x => x.id === id);
             if (!guardOwner(item)) return;
-            if (!confirm('确定删除「' + item.title + '」？')) return;
+            if (!await askConfirm('确定删除「' + (item.title || '未命名') + '」？删除后无法恢复。')) return;
             competitions = competitions.filter(x => x.id !== id);
             await deleteRow('comp', id);
             renderAll();
@@ -2122,7 +2181,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
         async function deleteScenery(id) {
             const item = sceneries.find(x => x.id === id);
             if (!guardOwner(item)) return;
-            if (!confirm('确定删除这张照片？')) return;
+            if (!await askConfirm('确定删除这张照片？删除后无法恢复。')) return;
             sceneries = sceneries.filter(x => x.id !== id);
             await deleteRow('scenery', id);
             renderAll();
@@ -2199,5 +2258,18 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
         }
         loadNews();
     </script>
+
+    <!-- 自定义确认弹窗 -->
+    <div id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+        <div class="confirm-box">
+            <div class="confirm-icon" id="confirm-icon">🗑️</div>
+            <div class="confirm-title" id="confirm-title">确定删除？</div>
+            <div class="confirm-msg" id="confirm-msg"></div>
+            <div class="confirm-btns">
+                <button class="confirm-cancel" id="confirm-cancel">取消</button>
+                <button class="confirm-ok danger" id="confirm-ok">确定删除</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
