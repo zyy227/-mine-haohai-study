@@ -758,6 +758,14 @@
         const SUPABASE_KEY = 'sb_publishable_NrbDiThGb-gPPSAVmVZXyA_PXXBslVc'; 
         const BUCKET_NAME = 'file'; 
 
+        // 上传大小限制（前端先拦一道，Supabase Storage 里也建议设同样的上限）
+        const MAX_DOC_MB = 20;
+        const MAX_IMAGE_MB = 15;
+        // 一次最多从云端拉多少条清单：Supabase 默认单次上限约 1000 行，超过会静默截断
+        const ITEM_FETCH_LIMIT = 1000;
+        // 本地缓存最多存多少条：localStorage 只有约 5MB，存太多会写失败
+        const LOCAL_CACHE_LIMIT = 300;
+
         // 管理员邮箱（仅用于控制"管理后台"入口显示；真正的权限校验在服务端 /api/admin 完成）
         const ADMIN_EMAIL = '2984054909@qq.com';
         function isAdmin() { return !!(currentUser && currentUser.email && currentUser.email.toLowerCase() === ADMIN_EMAIL); }
@@ -1589,13 +1597,20 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
         // 本地缓存：断网或云端没配好时页面照样能显示
         // 只在数据真的变化时才写入，避免多标签页 storage 事件互相触发形成循环
         function saveLocalBackup() {
-            const pairs = [
-                ['myDocs', docs], ['myComps', competitions], ['mySceneries', sceneries]
-            ];
-            pairs.forEach(([key, value]) => {
-                const str = JSON.stringify(value);
-                if (localStorage.getItem(key) !== str) localStorage.setItem(key, str);
-            });
+            try {
+                // 只缓存最近的一部分，避免 localStorage 写满后抛异常影响主流程
+                const pairs = [
+                    ['myDocs', docs.slice(0, LOCAL_CACHE_LIMIT)],
+                    ['myComps', competitions.slice(0, LOCAL_CACHE_LIMIT)],
+                    ['mySceneries', sceneries.slice(0, LOCAL_CACHE_LIMIT)]
+                ];
+                pairs.forEach(([key, value]) => {
+                    const str = JSON.stringify(value);
+                    if (localStorage.getItem(key) !== str) localStorage.setItem(key, str);
+                });
+            } catch (e) {
+                console.warn('本地缓存写入失败（可能已满），不影响云端数据：', (e && e.message) || e);
+            }
         }
 
         // ---------- 云端同步状态提示 ----------
@@ -1630,21 +1645,23 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
         }
 
         // 读取云端清单：优先走本站 /api/items 中转（手机 4G 更稳），失败再回退直连 supabase.co
+        // 只取最近 ITEM_FETCH_LIMIT 条，返回 { items, truncated }，避免数据多了以后静默截断
         async function fetchRows() {
             try {
-                const res = await withTimeout(fetch('/api/items', { headers: await authHeaders() }), 12000);
+                const res = await withTimeout(fetch('/api/items?limit=' + ITEM_FETCH_LIMIT, { headers: await authHeaders() }), 12000);
                 if (!res.ok) throw new Error('中转接口 HTTP ' + res.status);
                 const json = await res.json();
                 if (!Array.isArray(json.items)) throw new Error('中转接口返回格式错误');
-                return json.items;
+                return { items: json.items, truncated: !!json.truncated };
             } catch (e) {
                 // 回退：直连 Supabase（电脑上通常可用；本地 file:// 打开也走这里）
                 const { data, error } = await withTimeout(
-                    supabaseClient.from(TABLE_NAME).select('*').order('id', { ascending: false }),
+                    supabaseClient.from(TABLE_NAME).select('*').order('id', { ascending: false }).limit(ITEM_FETCH_LIMIT),
                     12000
                 );
                 if (error) throw error;
-                return data;
+                const rows = Array.isArray(data) ? data : [];
+                return { items: rows, truncated: rows.length >= ITEM_FETCH_LIMIT };
             }
         }
 
@@ -1654,7 +1671,9 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             const btn = document.getElementById('sync-refresh-btn');
             if (!silent) { setSyncStatus('', '正在连接云端…'); if (btn) btn.disabled = true; }
             try {
-                const data = await fetchRows();
+                const result = await fetchRows();
+                const data = result.items;
+                const truncated = result.truncated;
 
                 if (data.length === 0) {
                     // 云端为空：仅「登录用户」可把自己的本地数据一次性搬上去。
@@ -1684,7 +1703,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
                 saveLocalBackup();
                 renderAll();
                 const total = docs.length + competitions.length + sceneries.length;
-                setSyncStatus('ok', `☁️ 云端已同步 · 共 ${total} 条内容`);
+                setSyncStatus('ok', `☁️ 云端已同步 · 共 ${total} 条内容` + (truncated ? `（仅显示最近 ${ITEM_FETCH_LIMIT} 条）` : ''));
             } catch (e) {
                 console.warn('云端读取失败，暂时使用本地缓存：', e.message);
                 cloudReady = false;
@@ -2102,7 +2121,7 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
                 let div = document.createElement("div"); div.className = "scenery-img-box";
                 const delBtn = canEdit(item) ? '<button class="del-btn" onclick="deleteScenery(' + id + ')">×</button>' : '';
                 const tTag = item.status === 'takedown' ? '<span class="takedown-tag scenery-takedown">⛔</span>' : '';
-                div.innerHTML = `<img src="${escapeHtml(safeUrl(item.link))}" alt="风景" onclick="openSceneryDetail(${id})">${tTag}${delBtn}`;
+                div.innerHTML = `<img src="${escapeHtml(safeUrl(item.link))}" alt="风景" loading="lazy" decoding="async" onclick="openSceneryDetail(${id})">${tTag}${delBtn}`;
                 sceneryContainer.appendChild(div);
             });
         }
@@ -2158,6 +2177,10 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             let submitBtn = document.getElementById("upload-submit-btn");
             if (name.trim() === "") { alert("请填写资料名称！"); return; }
             let file = fileInput.files[0];
+            if (file && file.size > MAX_DOC_MB * 1024 * 1024) {
+                alert("文件 " + (file.size / 1024 / 1024).toFixed(1) + "MB，超过 " + MAX_DOC_MB + "MB 上限。请压缩后再传，或放到网盘后把链接发到比赛模块。");
+                return;
+            }
             let fileUrl = "";
             if (file) {
                 submitBtn.innerText = "⏳ 正在上传中..."; submitBtn.disabled = true;
@@ -2184,6 +2207,46 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             alert(ok ? "资料发布成功！文件在网盘，清单已存云端" : "资料已上传到本地缓存，但清单写入云端失败（请先执行 supabase-setup.sql）");
         }
 
+        // 手机原图动辄 5–10MB，先压到最长边 1600px 再上传，省流量也省 Supabase 空间
+        async function compressImageFile(file, maxSide, quality) {
+            maxSide = maxSide || 1600;
+            quality = quality || 0.82;
+            if (!file || !/^image\//.test(file.type || '')) return file;
+            try {
+                let source;
+                if (typeof createImageBitmap === 'function') {
+                    source = await createImageBitmap(file);
+                } else {
+                    source = await new Promise(function (resolve, reject) {
+                        const img = new Image();
+                        const url = URL.createObjectURL(file);
+                        img.onload = function () { URL.revokeObjectURL(url); resolve(img); };
+                        img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('图片解码失败')); };
+                        img.src = url;
+                    });
+                }
+                const sw = source.width || source.naturalWidth || 0;
+                const sh = source.height || source.naturalHeight || 0;
+                if (!sw || !sh) return file;
+                const scale = Math.min(1, maxSide / Math.max(sw, sh));
+                // 本来就不大，不折腾
+                if (scale >= 1 && file.size <= 800 * 1024) return file;
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.round(sw * scale));
+                canvas.height = Math.max(1, Math.round(sh * scale));
+                const ctx = canvas.getContext('2d');
+                if (!ctx) return file;
+                ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+                const blob = await new Promise(function (resolve) { canvas.toBlob(resolve, 'image/jpeg', quality); });
+                if (!blob) return file;
+                if (typeof source.close === 'function') source.close();
+                return new File([blob], 'scenery_' + Date.now() + '.jpg', { type: 'image/jpeg' });
+            } catch (e) {
+                console.warn('图片压缩失败，改为上传原图：', (e && e.message) || e);
+                return file;
+            }
+        }
+
         async function uploadScenery() {
             if (!requireLogin('分享照片')) return;
             let fileInput = document.getElementById("scenery-file");
@@ -2191,14 +2254,25 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
             let submitBtn = document.getElementById("scenery-submit-btn");
             let file = fileInput.files[0];
             if (!file) { alert("请先选择一张照片！"); return; }
-            submitBtn.innerText = "⏳ 正在上传中..."; submitBtn.disabled = true;
+            if (file.size > MAX_IMAGE_MB * 1024 * 1024) {
+                alert("照片 " + (file.size / 1024 / 1024).toFixed(1) + "MB，超过 " + MAX_IMAGE_MB + "MB 上限。请先压缩或换一张。");
+                return;
+            }
+            submitBtn.innerText = "⏳ 正在压缩..."; submitBtn.disabled = true;
+            let uploadFile = file;
+            try {
+                uploadFile = await compressImageFile(file, 1600, 0.82);
+            } finally {
+                submitBtn.innerText = "⏳ 正在上传中...";
+            }
             let publicUrl;
             try {
-                // 提取文件后缀（如 .jpg），并生成纯英文数字的文件名
-                let fileExt = file.name.split('.').pop();
+                // 压缩后统一是 jpg；压缩失败则保留原文件后缀
+                let fileExt = (uploadFile.name && uploadFile.name.split('.').pop()) || 'jpg';
+                if (uploadFile.type === 'image/jpeg') fileExt = 'jpg';
                 let fileName = "scenery_" + Date.now() + "." + fileExt;
                 const { error } = await withTimeout(
-                    supabaseClient.storage.from(BUCKET_NAME).upload(fileName, file), 30000
+                    supabaseClient.storage.from(BUCKET_NAME).upload(fileName, uploadFile), 30000
                 );
                 if (error) { alert("照片上传失败: " + error.message); return; }
                 const { data: urlData } = supabaseClient.storage.from(BUCKET_NAME).getPublicUrl(fileName);
