@@ -151,6 +151,9 @@ function p0Show(mod) {
 
     var row = document.querySelector('#main-screen .row-layout');
     if (row) row.style.display = (P0.module === 'all') ? '' : 'none';
+    // 统计横条（共享资料/竞赛活动/校园美景）只在「资料·比赛·美景」显示，其余模块隐藏
+    var dash = document.querySelector('#main-screen .dashboard');
+    if (dash) dash.style.display = (P0.module === 'all') ? '' : 'none';
     if (P0.module === 'all') {
         document.querySelectorAll('#main-screen .module-card').forEach(function (c) { c.style.display = 'block'; });
     }
