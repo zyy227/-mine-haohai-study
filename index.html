@@ -358,6 +358,20 @@
         .confirm-cancel { background: #f0f2f5; color: #555; }
         .confirm-ok { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
         .confirm-ok.danger { background: linear-gradient(135deg, #ff6b6b, #e74c3c); }
+
+        /* 界面内提示 Toast（替代浏览器原生 alert 黑框） */
+        #toast-wrap { position: fixed; top: 78px; right: 18px; z-index: 10030; display: flex; flex-direction: column; gap: 10px; align-items: flex-end; pointer-events: none; }
+        .toast { min-width: 220px; max-width: min(380px, 90vw); background: #fff; border-radius: 12px; padding: 13px 16px; box-shadow: 0 10px 32px rgba(0,0,0,.18); border-left: 4px solid #667eea; display: flex; align-items: flex-start; gap: 10px; font-size: 14px; line-height: 1.6; color: #333; animation: toastIn .28s ease; pointer-events: auto; word-break: break-word; }
+        .toast.ok { border-left-color: #28a745; }
+        .toast.err { border-left-color: #e74c3c; }
+        .toast.info { border-left-color: #667eea; }
+        .toast .ti { font-size: 18px; line-height: 1.2; flex: none; }
+        .toast.ok .ti { color: #28a745; }
+        .toast.err .ti { color: #e74c3c; }
+        .toast.info .ti { color: #667eea; }
+        .toast.out { animation: toastOut .3s ease forwards; }
+        @keyframes toastIn { from { transform: translateX(30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes toastOut { to { transform: translateX(30px); opacity: 0; } }
     </style>
     
     <!-- SDK 多 CDN 同步兜底：jsdelivr 挂了立即同步切换到 unpkg，解决"登录组件未加载" -->
@@ -694,6 +708,36 @@
                 okBtn.focus();
             });
         }
+
+        // ==========================================
+        // 界面内提示 Toast：覆盖原生 alert，所有 alert() 自动变成界面提示
+        // 也提供 showToast(msg, type) 供直接调用（type: ok/err/info）
+        // ==========================================
+        function showToast(message, type) {
+            type = type || 'info';
+            const wrap = document.getElementById('toast-wrap');
+            if (!wrap) { return; }
+            const el = document.createElement('div');
+            el.className = 'toast ' + type;
+            const icon = type === 'ok' ? '✓' : (type === 'err' ? '!' : 'i');
+            el.innerHTML = '<span class="ti">' + icon + '</span><span class="tx"></span>';
+            el.querySelector('.tx').textContent = String(message == null ? '' : message);
+            wrap.appendChild(el);
+            const close = () => {
+                if (el.classList.contains('out')) return;
+                el.classList.add('out');
+                setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 300);
+            };
+            el.addEventListener('click', close);
+            setTimeout(close, type === 'err' ? 5200 : 3200);
+        }
+        // 覆盖全局 alert：任何 alert('...') 都会显示为界面提示，不再有浏览器黑框
+        window.alert = function (message) {
+            const s = String(message == null ? '' : message);
+            const t = /失败|错误|不能|超时|未加载|没有|不支持|填写|不可用/.test(s) ? 'err'
+                    : /成功|已保存|欢迎|完成/.test(s) ? 'ok' : 'info';
+            showToast(s, t);
+        };
 
         // ==========================================
         // ⚠️ 配置区
@@ -2258,6 +2302,9 @@ const FALLBACK_MODEL = 'google/gemini-2.0-flash-exp:free';
         }
         loadNews();
     </script>
+
+    <!-- 界面内提示容器 -->
+    <div id="toast-wrap" aria-live="polite"></div>
 
     <!-- 自定义确认弹窗 -->
     <div id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
