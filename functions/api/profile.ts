@@ -75,7 +75,7 @@ export async function onRequest({ request, env }) {
         .split(',').map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean);
 
     const url = new URL(request.url);
-    const action = url.searchParams.get('action') || '';
+    let action = url.searchParams.get('action') || '';
     const token = (request.headers.get('X-User-Token') || '').trim();
 
     const method = request.method.toUpperCase();
@@ -169,6 +169,9 @@ export async function onRequest({ request, env }) {
 
         let body;
         try { body = await request.json(); } catch (_) { return json({ error: '请求体必须是 JSON' }, 400); }
+
+        // 兼容前端把 action 放在 POST 请求体里的传法（URL 上没带 action 时）
+        if (!action && body && body.action) action = String(body.action);
 
         if (action === 'save') {
             const patch = {
