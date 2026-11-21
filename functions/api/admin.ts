@@ -76,8 +76,11 @@ export async function onRequest({ request, env }) {
 
     // check 操作：回答是不是管理员
     const url = new URL(request.url);
-    const action = request.method.toUpperCase() === 'POST'
-        ? (await safeBody(request)).action
+    // 重要：request body 只能读一次，先读出来复用，否则后面再读会得到空对象导致"缺少 id"
+    const isPost = request.method.toUpperCase() === 'POST';
+    const reqBody = isPost ? await safeBody(request) : {};
+    const action = isPost
+        ? (reqBody.action || url.searchParams.get('action') || '')
         : (url.searchParams.get('action') || '');
 
     if (action === 'check') {
@@ -211,10 +214,9 @@ export async function onRequest({ request, env }) {
             return json({ error: '未知的 action' }, 400);
         }
 
-        if (request.method.toUpperCase() === 'POST') {
-            const body = await safeBody(request);
-            const id = body.id;
-            if (!id) return json({ error: '缺少 id' }, 400);
+        if (isPost) {
+            const id = reqBody.id;
+            if (!id && id !== 0) return json({ error: '缺少 id' }, 400);
 
             if (action === 'takedown' || action === 'restore') {
                 const newStatus = action === 'takedown' ? 'takedown' : 'approved';
