@@ -1455,6 +1455,8 @@ const FALLBACK_MODEL = 'openrouter/free';
                 return;
             }
 
+            if (typeof trackMetric === 'function') trackMetric('ai');
+
             isGenerating = true;
             updateSendButton(true);
 

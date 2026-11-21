@@ -75,6 +75,12 @@
         .top-item .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .top-item .vn { color: #888; font-size: 12px; }
         .refresh { border: none; background: #5b3bb5; color: #fff; padding: 8px 16px; border-radius: 16px; cursor: pointer; font-size: 13px; float: right; }
+        .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+        .filters button { border: none; background: #f0eefe; color: #5b3bb5; padding: 7px 14px; border-radius: 16px; cursor: pointer; font-size: 13px; font-weight: bold; }
+        .filters button.active { background: #5b3bb5; color: #fff; }
+        .tag.mid { background: #fff7e6; color: #d46b08; }
+        .sub-line { color: #999; font-size: 11px; margin-top: 3px; }
+        .preview-text { text-align: left; color: #444; font-size: 14px; line-height: 1.9; white-space: pre-wrap; word-break: break-word; width: 100%; }
         @media (max-width: 600px) {
             .num { font-size: 24px; }
             .wrap { margin: 14px auto; }
@@ -113,7 +119,7 @@
         .preview-head { padding: 14px 18px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: none; }
         .preview-head .pt { font-weight: bold; font-size: 15px; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .preview-head .px { cursor: pointer; font-size: 24px; color: #999; line-height: 1; flex: none; }
-        .preview-body { flex: 1; overflow: auto; background: #f5f6f8; display: flex; align-items: center; justify-content: center; min-height: 240px; padding: 16px; }
+        .preview-body { flex: 1; overflow: auto; background: #f5f6f8; display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center; min-height: 240px; padding: 16px; }
         .preview-body img { max-width: 100%; max-height: 72vh; object-fit: contain; border-radius: 8px; }
         .preview-body iframe { width: 100%; height: 72vh; border: none; background: #fff; }
         .preview-fallback { text-align: center; color: #666; line-height: 2; }
@@ -165,7 +171,16 @@
         <div class="panel" id="panel-items">
             <button class="refresh" onclick="loadItems()">🔄 刷新</button>
             <div class="box">
-                <h3>全部内容（含已下架）</h3>
+                <h3>内容巡查（含已下架）</h3>
+                <div class="filters" id="item-filters">
+                    <button class="active" data-type="all" onclick="setItemFilter('all')">全部</button>
+                    <button data-type="doc" onclick="setItemFilter('doc')">📚 资料</button>
+                    <button data-type="comp" onclick="setItemFilter('comp')">🏆 比赛</button>
+                    <button data-type="scenery" onclick="setItemFilter('scenery')">🌸 美景</button>
+                    <button data-type="course" onclick="setItemFilter('course')">🎓 课程</button>
+                    <button data-type="lostfound" onclick="setItemFilter('lostfound')">🔍 失物</button>
+                    <button data-type="team" onclick="setItemFilter('team')">🤝 组队</button>
+                </div>
                 <div id="items-list"><div class="loading">加载中…</div></div>
             </div>
         </div>
@@ -372,14 +387,14 @@
                 const d = await api('stats');
                 const s = d.stats || {};
                 const cards = [
-                    ['c1', s.contentTotal, '内容总数', `资料 ${s.docCount||0} · 比赛 ${s.compCount||0} · 美景 ${s.sceneryCount||0}`],
+                    ['c1', s.contentTotal, '内容总数', `资料 ${s.docCount||0} · 比赛 ${s.compCount||0} · 美景 ${s.sceneryCount||0} · 课程 ${s.courseCount||0} · 失物 ${s.lostfoundCount||0} · 组队 ${s.teamCount||0}`],
                     ['c2', s.userCount, '注册用户', '已注册的账号数'],
                     ['c3', s.visitTotal, '网站访问量', `今日 ${s.visitToday||0} 次`],
                     ['c4', s.aiTotal, 'AI 提问次数', `今日 ${s.aiToday||0} 次`]
                 ];
                 box.innerHTML = cards.map(c => `<div class="card ${c[0]}"><div class="num">${c[1]}</div><div class="label">${c[2]}</div><div class="sub">${c[3]}</div></div>`).join('') +
                     `<div class="card"><div class="num">${s.downloadTotal||0}</div><div class="label">下载/查看次数</div><div class="sub">今日 ${s.downloadToday||0} 次</div></div>` +
-                    `<div class="card"><div class="num">${s.takedownCount||0}</div><div class="label">已下架内容</div><div class="sub">待处理违规</div></div>`;
+                    `<div class="card"><div class="num">${s.takedownCount||0}</div><div class="label">已下架内容</div><div class="sub">资料 / 课程 / 失物 / 组队</div></div>`;
 
                 const tops = d.topItems || [];
                 const maxV = tops.reduce((a, x) => Math.max(a, x.views || 0), 1);
@@ -393,33 +408,74 @@
         }
 
         // ===== 内容巡查 =====
+        let itemFilter = 'all';
+        let allItems = [];
+        const TYPE_LABEL = { doc:'📚 资料', comp:'🏆 比赛', scenery:'🌸 美景', course:'🎓 课程', lostfound:'🔍 失物', team:'🤝 组队' };
+
+        function statusTag(it) {
+            if (it.status === 'takedown' || it.status === 'hidden') return '<span class="tag down">已下架</span>';
+            if (it.type === 'lostfound') {
+                if (it.status === 'resolved') return '<span class="tag ok">已找回</span>';
+                if (it.status === 'closed') return '<span class="tag mid">已关闭</span>';
+                return '<span class="tag ok">寻找中</span>';
+            }
+            if (it.type === 'team') {
+                if (it.status === 'closed') return '<span class="tag mid">已关闭</span>';
+                return '<span class="tag ok">招募中</span>';
+            }
+            return '<span class="tag ok">公开</span>';
+        }
+
         async function loadItems() {
             const box = document.getElementById('items-list');
             box.innerHTML = '<div class="loading">加载中…</div>';
             try {
                 const d = await api('items');
-                const items = d.items || [];
-                window.__adminItems = items;   // 缓存供预览弹窗按 id 查找
-                const kindName = { doc:'📚资料', comp:'🏆比赛', scenery:'🌸美景' };
-                if (!items.length) { box.innerHTML = '<div class="empty">暂无内容</div>'; return; }
-                box.innerHTML = '<table><thead><tr><th>类型</th><th>名称</th><th>发布者</th><th>状态</th><th>查看</th><th>操作</th></tr></thead><tbody>' +
-                    items.map(it => {
-                        const name = it.name || it.desc_text || '未命名';
-                        const status = it.status === 'takedown'
-                            ? '<span class="tag down">已下架</span>' : '<span class="tag ok">公开</span>';
-                        const op = it.status === 'takedown'
-                            ? `<button class="op restore" onclick="moderate('restore',${it.id})">恢复</button>`
-                            : `<button class="op down" onclick="moderate('takedown',${it.id})">下架</button>`;
-                        const viewBtn = `<button class="op view" onclick="previewItem(${it.id})">预览</button>`;
-                        return `<tr><td>${kindName[it.kind]||it.kind}</td><td>${esc(name)}</td><td>${esc((it.owner_email||'平台').split('@')[0])}</td><td>${status}</td><td>${it.view_count||0}</td><td>${viewBtn}${op}<button class="op del" onclick="moderate('delete',${it.id})">删除</button></td></tr>`;
-                    }).join('') + '</tbody></table>';
+                allItems = d.items || [];
+                window.__adminItems = allItems;   // 缓存供预览弹窗按 type + id 查找
+                renderItems();
             } catch (e) {
                 box.innerHTML = '<div class="empty" style="color:#cf1322">加载失败：' + esc(e.message) + '</div>';
             }
         }
 
-        async function moderate(action, id) {
-            const names = { takedown:'下架', restore:'恢复公开', delete:'删除' };
+        function setItemFilter(type) {
+            itemFilter = type || 'all';
+            document.querySelectorAll('#item-filters button').forEach(function (b) {
+                b.classList.toggle('active', b.getAttribute('data-type') === itemFilter);
+            });
+            renderItems();
+        }
+
+        function renderItems() {
+            const box = document.getElementById('items-list');
+            const items = allItems.filter(function (it) {
+                return itemFilter === 'all' || it.type === itemFilter;
+            });
+            if (!items.length) {
+                box.innerHTML = '<div class="empty">这个分类下暂无内容</div>';
+                return;
+            }
+            box.innerHTML = '<table><thead><tr><th>类型</th><th>名称</th><th>发布者</th><th>状态</th><th>时间</th><th>操作</th></tr></thead><tbody>' +
+                items.map(function (it) {
+                    const name = it.title || '未命名';
+                    const sub = it.subtitle ? '<div class="sub-line">' + esc(it.subtitle) + '</div>' : '';
+                    const down = it.status === 'takedown' || it.status === 'hidden';
+                    const op = down
+                        ? `<button class="op restore" onclick="moderate('restore','${it.type}',${Number(it.id)})">恢复</button>`
+                        : `<button class="op down" onclick="moderate('takedown','${it.type}',${Number(it.id)})">下架</button>`;
+                    return `<tr><td>${TYPE_LABEL[it.type] || it.type}</td>` +
+                        `<td>${esc(name)}${sub}</td>` +
+                        `<td>${esc(it.owner || '平台')}</td>` +
+                        `<td>${statusTag(it)}</td>` +
+                        `<td>${fmtDate(it.created_at)}</td>` +
+                        `<td><button class="op view" onclick="previewItem('${it.type}',${Number(it.id)})">预览</button>${op}` +
+                        `<button class="op del" onclick="moderate('delete','${it.type}',${Number(it.id)})">删除</button></td></tr>`;
+                }).join('') + '</tbody></table>';
+        }
+
+        async function moderate(action, type, id) {
+            const names = { takedown: '下架', restore: '恢复公开', delete: '删除' };
             const isDelete = action === 'delete';
             const opts = isDelete
                 ? { title: '确定删除？', okText: '确定删除', icon: '🗑️', danger: true }
@@ -427,7 +483,7 @@
             const verb = isDelete ? '删除后无法恢复' : (action === 'restore' ? '恢复后所有人都能看到' : '下架后用户将无法看到');
             if (!await askConfirm('确定要「' + names[action] + '」这条内容吗？' + verb + '。', opts)) return;
             try {
-                await api('moderate', 'POST', { action, id });
+                await api('moderate', 'POST', { action, type, id });
                 loadItems();
                 loadStats();
             } catch (e) { alert('操作失败：' + e.message); }
@@ -438,27 +494,34 @@
             const s = String(u || '').trim();
             return /^(https?:\/\/|\/)/i.test(s) ? s : '';
         }
-        function previewItem(id) {
+        function previewItem(type, id) {
             const items = window.__adminItems || [];
-            const it = items.find(x => String(x.id) === String(id));
+            const it = items.find(x => String(x.type) === String(type) && String(x.id) === String(id));
             if (!it) { alert('未找到该内容，请刷新列表后重试'); return; }
-            const url = safeUrl(it.link);
-            const kind = it.kind || '';
-            const title = it.name || it.desc_text || (kind === 'scenery' ? '校园美景' : '未命名');
+            const title = it.title || '未命名';
             const modal = document.getElementById('preview-modal');
             document.getElementById('preview-title').textContent = title;
             const body = document.getElementById('preview-body');
-            if (!url) {
-                body.innerHTML = '<div class="preview-fallback">该内容没有可预览的链接。<br>仅登记了文字信息，没有上传文件。</div>';
+
+            if (type === 'course' || type === 'team') {
+                body.innerHTML = '<div class="preview-text">' + esc(it.desc || '暂无介绍') + '</div>';
+            } else if (type === 'lostfound') {
+                const img = it.link ? '<img src="' + esc(safeUrl(it.link)) + '" alt="失物照片">' : '';
+                body.innerHTML = img + '<div class="preview-text">' + esc(it.desc || '暂无描述') + '</div>';
             } else {
-                const isImg = kind === 'scenery' || /\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(url);
-                const isPdf = /\.(pdf)(\?|$)/i.test(url) || /\/file\/[^/]+/i.test(url);
-                if (isImg) {
-                    body.innerHTML = '<img src="' + esc(url) + '" alt="' + esc(title) + '">';
-                } else if (isPdf) {
-                    body.innerHTML = '<iframe src="' + esc(url) + '#toolbar=1" title="' + esc(title) + '"></iframe>';
+                const url = safeUrl(it.link);
+                if (!url) {
+                    body.innerHTML = '<div class="preview-fallback">该内容没有可预览的链接。<br>仅登记了文字信息，没有上传文件。</div>';
                 } else {
-                    body.innerHTML = '<div class="preview-fallback">此类型无法内嵌预览。<br><a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">在新标签打开 ↗</a></div>';
+                    const isImg = type === 'scenery' || /\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(url);
+                    const isPdf = /\.(pdf)(\?|$)/i.test(url) || /\/file\/[^/]+/i.test(url);
+                    if (isImg) {
+                        body.innerHTML = '<img src="' + esc(url) + '" alt="' + esc(title) + '">';
+                    } else if (isPdf) {
+                        body.innerHTML = '<iframe src="' + esc(url) + '#toolbar=1" title="' + esc(title) + '"></iframe>';
+                    } else {
+                        body.innerHTML = '<div class="preview-fallback">此类型无法内嵌预览。<br><a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">在新标签打开 ↗</a></div>';
+                    }
                 }
             }
             modal.style.display = 'flex';
