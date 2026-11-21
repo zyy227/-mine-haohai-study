@@ -98,22 +98,7 @@ export async function onRequestPost({ request, env, ctx }) {
     headers.set('Cache-Control', 'no-cache, no-transform');
     headers.set('X-Accel-Buffering', 'no');
 
-    // AI 用量埋点：记录一次提问（按天聚合）。失败不影响对话，用 waitUntil 后台执行不阻塞流。
-    try {
-        const SUPABASE_URL = (env.SUPABASE_URL || 'https://ihvusuaeksxynxewcmjs.supabase.co').replace(/\/$/, '');
-        const SUPABASE_KEY = env.SUPABASE_KEY || 'sb_publishable_NrbDiThGb-gPPSAVmVZXyA_PXXBslVc';
-        const trackPromise = fetch(SUPABASE_URL + '/rest/v1/rpc/bump_stat', {
-            method: 'POST',
-            headers: {
-                'apikey': SUPABASE_KEY,
-                'Authorization': 'Bearer ' + SUPABASE_KEY,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify({ p_metric: 'ai' })
-        }).catch(function () {});
-        if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(trackPromise);
-    } catch (_) {}
+    // AI 用量埋点已改到前端 /api/track（更可靠，不会因为函数 waitUntil 被取消而丢计数）
 
     return new Response(upstream.body, { status: upstream.status, headers });
 }

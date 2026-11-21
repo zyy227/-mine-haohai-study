@@ -142,21 +142,95 @@ export async function onRequest({ request, env }) {
             }
 
             if (action === 'items') {
-                // 全部内容（含被下架），供后台巡查
-                const res = await fetch(SUPABASE_URL + '/rest/v1/site_items?select=*&order=id.desc', {
-                    headers: adminHeaders, cf: { cacheTtl: 0 }
-                });
-                if (!res.ok) {
-                    const msg = await res.text();
-                    return json({ error: '读取内容失败：' + msg }, res.status);
+                // 全部内容（含已下架）：资料/比赛/美景 + 课程 + 失物招领 + 组队
+                const [siteRes, courseRes, lfRes, teamRes] = await Promise.all([
+                    fetch(SUPABASE_URL + '/rest/v1/site_items?select=*&order=id.desc', { headers: adminHeaders, cf: { cacheTtl: 0 } }),
+                    fetch(SUPABASE_URL + '/rest/v1/courses?select=*&order=id.desc', { headers: adminHeaders, cf: { cacheTtl: 0 } }),
+                    fetch(SUPABASE_URL + '/rest/v1/lost_found?select=*&order=id.desc', { headers: adminHeaders, cf: { cacheTtl: 0 } }),
+                    fetch(SUPABASE_URL + '/rest/v1/teams?select=*&order=id.desc', { headers: adminHeaders, cf: { cacheTtl: 0 } })
+                ]);
+                if (!siteRes.ok) {
+                    const msg = await siteRes.text();
+                    return json({ error: '读取内容失败：' + msg }, siteRes.status);
                 }
-                return json({ items: await res.json() });
+                const siteItems = await siteRes.json();
+                const courses = courseRes.ok ? await courseRes.json() : [];
+                const lost = lfRes.ok ? await lfRes.json() : [];
+                const teams = teamRes.ok ? await teamRes.json() : [];
+
+                const items = [];
+                (Array.isArray(siteItems) ? siteItems : []).forEach(function (r) {
+                    items.push({
+                        type: r.kind, kind: r.kind, id: r.id,
+                        title: r.name || r.desc_text || '未命名',
+                        subtitle: r.kind === 'scenery' ? '校园美景' : (r.type || ''),
+                        owner: (r.owner_email || '').split('@')[0] || '平台',
+                        status: r.status || 'approved',
+                        created_at: r.created_at,
+                        view_count: Number(r.view_count) || 0,
+                        link: r.link || '',
+                        desc: r.desc_text || ''
+                    });
+                });
+                (Array.isArray(courses) ? courses : []).forEach(function (c) {
+                    items.push({
+                        type: 'course', kind: 'course', id: c.id,
+                        title: c.name || '未命名课程',
+                        subtitle: [c.college, c.teacher, c.credit ? (c.credit + ' 学分') : ''].filter(Boolean).join(' · ') || '课程',
+                        owner: '平台/课程',
+                        status: c.status || 'approved',
+                        created_at: c.created_at,
+                        view_count: 0,
+                        link: '',
+                        desc: c.intro || ''
+                    });
+                });
+                (Array.isArray(lost) ? lost : []).forEach(function (l) {
+                    items.push({
+                        type: 'lostfound', kind: 'lostfound', id: l.id,
+                        title: l.title || '未命名失物',
+                        subtitle: [(l.kind === 'found' ? '🟢 我捡到了' : '🔴 我丢了'), l.place].filter(Boolean).join(' · '),
+                        owner: l.owner_nickname || '同学',
+                        status: l.status || 'open',
+                        created_at: l.created_at,
+                        view_count: 0,
+                        link: l.image_url || '',
+                        desc: l.desc_text || ''
+                    });
+                });
+                (Array.isArray(teams) ? teams : []).forEach(function (t) {
+                    const kindText = t.kind === 'competition' ? '竞赛组队' : (t.kind === 'course' ? '课程大作业' : '学习搭子');
+                    items.push({
+                        type: 'team', kind: 'team', id: t.id,
+                        title: t.title || '未命名队伍',
+                        subtitle: [kindText, t.competition, t.skills].filter(Boolean).join(' · '),
+                        owner: t.owner_nickname || '同学',
+                        status: t.status || 'open',
+                        created_at: t.created_at,
+                        view_count: 0,
+                        link: '',
+                        desc: t.desc_text || ''
+                    });
+                });
+
+                items.sort(function (a, b) {
+                    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+                });
+                return json({ items: items });
             }
 
             if (action === 'stats') {
-                // 内容总数、各类型数量、被下架数量
-                const itemsRes = await fetch(SUPABASE_URL + '/rest/v1/site_items?select=kind,status,view_count', { headers: adminHeaders });
+                // 内容总数、各类型数量、被下架数量（覆盖所有内容表）
+                const [itemsRes, courseRes, lfRes, teamRes] = await Promise.all([
+                    fetch(SUPABASE_URL + '/rest/v1/site_items?select=kind,status,view_count', { headers: adminHeaders }),
+                    fetch(SUPABASE_URL + '/rest/v1/courses?select=id,status', { headers: adminHeaders }),
+                    fetch(SUPABASE_URL + '/rest/v1/lost_found?select=id,status', { headers: adminHeaders }),
+                    fetch(SUPABASE_URL + '/rest/v1/teams?select=id,status', { headers: adminHeaders })
+                ]);
                 const items = itemsRes.ok ? await itemsRes.json() : [];
+                const courses = courseRes.ok ? await courseRes.json() : [];
+                const lost = lfRes.ok ? await lfRes.json() : [];
+                const teams = teamRes.ok ? await teamRes.json() : [];
 
                 // 注册用户数：直接取用户列表长度（最可靠），不再依赖 content-range 头
                 let userCount = 0;
@@ -191,14 +265,25 @@ export async function onRequest({ request, env }) {
                 }
 
                 const totalViews = items.reduce(function (a, r) { return a + (Number(r.view_count) || 0); }, 0);
+                const docCount = items.filter(function (r) { return r.kind === 'doc'; }).length;
+                const compCount = items.filter(function (r) { return r.kind === 'comp'; }).length;
+                const sceneryCount = items.filter(function (r) { return r.kind === 'scenery'; }).length;
+                const takedownCount =
+                    items.filter(function (r) { return r.status === 'takedown'; }).length +
+                    courses.filter(function (r) { return r.status === 'hidden'; }).length +
+                    lost.filter(function (r) { return r.status === 'hidden'; }).length +
+                    teams.filter(function (r) { return r.status === 'hidden'; }).length;
 
                 return json({
                     stats: {
-                        contentTotal: items.length,
-                        docCount: items.filter(function (r) { return r.kind === 'doc'; }).length,
-                        compCount: items.filter(function (r) { return r.kind === 'comp'; }).length,
-                        sceneryCount: items.filter(function (r) { return r.kind === 'scenery'; }).length,
-                        takedownCount: items.filter(function (r) { return r.status === 'takedown'; }).length,
+                        contentTotal: items.length + courses.length + lost.length + teams.length,
+                        docCount: docCount,
+                        compCount: compCount,
+                        sceneryCount: sceneryCount,
+                        courseCount: courses.length,
+                        lostfoundCount: lost.length,
+                        teamCount: teams.length,
+                        takedownCount: takedownCount,
                         userCount: userCount,
                         visitTotal: sum('visit', false),
                         visitToday: sum('visit', true),
@@ -222,9 +307,18 @@ export async function onRequest({ request, env }) {
             const id = reqBody.id;
             if (!id && id !== 0) return json({ error: '缺少 id' }, 400);
 
+            // 内容类型 → 数据表；不传 type 时兼容旧前端（默认 site_items）
+            const tableMap = {
+                doc: 'site_items', comp: 'site_items', scenery: 'site_items',
+                course: 'courses', lostfound: 'lost_found', team: 'teams'
+            };
+            const table = tableMap[String(reqBody.type || '')] || 'site_items';
+
             if (action === 'takedown' || action === 'restore') {
-                const newStatus = action === 'takedown' ? 'takedown' : 'approved';
-                const res = await fetch(SUPABASE_URL + '/rest/v1/site_items?id=eq.' + encodeURIComponent(id), {
+                const newStatus = action === 'takedown'
+                    ? (table === 'site_items' ? 'takedown' : 'hidden')
+                    : (table === 'courses' || table === 'site_items' ? 'approved' : 'open');
+                const res = await fetch(SUPABASE_URL + '/rest/v1/' + table + '?id=eq.' + encodeURIComponent(id), {
                     method: 'PATCH',
                     headers: Object.assign({}, adminHeaders, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
                     body: JSON.stringify({ status: newStatus })
@@ -237,7 +331,7 @@ export async function onRequest({ request, env }) {
             }
 
             if (action === 'delete') {
-                const res = await fetch(SUPABASE_URL + '/rest/v1/site_items?id=eq.' + encodeURIComponent(id), {
+                const res = await fetch(SUPABASE_URL + '/rest/v1/' + table + '?id=eq.' + encodeURIComponent(id), {
                     method: 'DELETE', headers: adminHeaders
                 });
                 if (!res.ok) {
