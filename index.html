@@ -185,38 +185,38 @@
         /* 🌟 AI 助手专属样式 */
         /* ========================================== */
         #ai-ball {
-            position: fixed; right: 28px; bottom: 28px; width: 76px; height: 76px; border-radius: 50%;
-            background: radial-gradient(circle at 35% 28%, #c39bff 0%, #9b6cff 32%, #6a34d8 66%, #3a118f 100%);
+            position: fixed; right: 28px; bottom: 28px; width: 82px; height: 82px; border-radius: 50%;
+            background: radial-gradient(circle at 35% 28%, #1e4a8f 0%, #0d2a63 45%, #061436 100%);
             color: white; display: flex; align-items: center; justify-content: center;
             cursor: grab; z-index: 10001;
-            box-shadow: 0 0 22px rgba(150,90,255,0.7), 0 0 46px rgba(150,90,255,0.3), inset 0 2px 5px rgba(255,255,255,0.55), inset 0 -4px 8px rgba(40,0,110,0.5);
+            box-shadow: 0 0 24px rgba(90,170,255,0.75), 0 0 50px rgba(60,140,255,0.35), inset 0 2px 6px rgba(180,220,255,0.5), inset 0 -4px 10px rgba(0,20,70,0.6);
             user-select: none; transition: transform 0.2s, box-shadow 0.25s;
             animation: ai-breathe 3s ease-in-out infinite;
         }
         /* 外层旋转光环（球的边缘） */
         #ai-ball::after {
             content:''; position:absolute; inset:-7px; border-radius:50%;
-            background: conic-gradient(from 0deg, #c39bff, #6a34d8, #7ee8ff, #c39bff, #6a34d8, #7ee8ff, #c39bff);
+            background: conic-gradient(from 0deg, #7ee8ff, #2f8fff, #b39bff, #7ee8ff, #2f8fff, #b39bff, #7ee8ff);
             -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 5px));
             mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 5px));
             animation: ai-flow 2.6s linear infinite; pointer-events:none;
         }
-        /* 新增：芯片周围紧贴的一圈旋转光环（青蓝→紫，带虚线科技感） */
+        /* 星球周围紧贴的一圈旋转光环（青蓝科技感） */
         .ai-chip-ring {
-            position: absolute; width: 56px; height: 56px; border-radius: 50%;
-            background: conic-gradient(from 0deg, #7ee8ff, #c39bff, #6a34d8, #7ee8ff, #c39bff, #7ee8ff);
+            position: absolute; width: 74px; height: 74px; border-radius: 50%;
+            background: conic-gradient(from 0deg, #7ee8ff, #2f8fff, #b39bff, #7ee8ff, #2f8fff, #7ee8ff);
             -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
             mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
             animation: ai-flow 1.8s linear infinite reverse; pointer-events: none;
         }
         @keyframes ai-flow { to { transform: rotate(360deg); } }
         @keyframes ai-breathe {
-            0%,100% { box-shadow: 0 0 22px rgba(150,90,255,0.7), 0 0 46px rgba(150,90,255,0.3), inset 0 2px 5px rgba(255,255,255,0.55), inset 0 -4px 8px rgba(40,0,110,0.5); }
-            50%     { box-shadow: 0 0 30px rgba(150,90,255,0.95), 0 0 62px rgba(150,90,255,0.5), inset 0 2px 5px rgba(255,255,255,0.65), inset 0 -4px 8px rgba(40,0,110,0.5); }
+            0%,100% { box-shadow: 0 0 24px rgba(90,170,255,0.75), 0 0 50px rgba(60,140,255,0.35), inset 0 2px 6px rgba(180,220,255,0.5), inset 0 -4px 10px rgba(0,20,70,0.6); }
+            50%     { box-shadow: 0 0 34px rgba(110,190,255,1), 0 0 68px rgba(60,140,255,0.55), inset 0 2px 6px rgba(200,235,255,0.65), inset 0 -4px 10px rgba(0,20,70,0.6); }
         }
         #ai-ball:hover { transform: scale(1.08); }
         #ai-ball:active { cursor: grabbing; transform: scale(1.14); }
-        .ai-chip-icon { width: 42px; height: 42px; pointer-events: none; filter: drop-shadow(0 0 5px rgba(140,190,255,0.95)); z-index: 1; }
+        .ai-chip-icon { width: 70px; height: 70px; object-fit: cover; border-radius: 50%; pointer-events: none; box-shadow: 0 0 12px rgba(120,200,255,0.9); z-index: 1; }
 
         #ai-chat-panel {
             position: fixed; right: auto; bottom: auto; width: 350px; height: 500px;
@@ -338,9 +338,9 @@
             .modal-content { padding: 18px; }
 
             /* --- AI 悬浮球与面板：贴边小尺寸 + 全宽面板 --- */
-            #ai-ball { width: 64px; height: 64px; right: 16px; bottom: 16px; }
-            .ai-chip-icon { width: 36px; height: 36px; }
-            .ai-chip-ring { width: 48px; height: 48px; }
+            #ai-ball { width: 68px; height: 68px; right: 16px; bottom: 16px; }
+            .ai-chip-icon { width: 58px; height: 58px; }
+            .ai-chip-ring { width: 62px; height: 62px; }
             #ai-chat-panel {
                 position: fixed !important;
                 left: 8px !important;
@@ -638,50 +638,7 @@
     <!-- 悬浮球 -->
     <div id="ai-ball">
         <span class="ai-chip-ring"></span>
-        <svg class="ai-chip-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <!-- 主体金属渐变：左上亮、右下暗，做出斜面体积感 -->
-                <linearGradient id="chipBody" x1="14" y1="14" x2="50" y2="52" gradientUnits="userSpaceOnUse">
-                    <stop stop-color="#4a63b8"/><stop offset="0.45" stop-color="#1d2a63"/><stop offset="1" stop-color="#080d28"/>
-                </linearGradient>
-                <!-- 顶部高光带 -->
-                <linearGradient id="chipTop" x1="16" y1="16" x2="48" y2="26" gradientUnits="userSpaceOnUse">
-                    <stop stop-color="#9db4ff" stop-opacity="0.95"/><stop offset="1" stop-color="#9db4ff" stop-opacity="0"/>
-                </linearGradient>
-                <!-- 引脚金属银色渐变 -->
-                <linearGradient id="pinGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-                    <stop stop-color="#eaf3ff"/><stop offset="0.5" stop-color="#9fc0f0"/><stop offset="1" stop-color="#5a79b8"/>
-                </linearGradient>
-                <!-- 内嵌凹槽：上暗下亮，形成凹陷立体感 -->
-                <linearGradient id="innerWell" x1="25" y1="25" x2="39" y2="39" gradientUnits="userSpaceOnUse">
-                    <stop stop-color="#050818"/><stop offset="1" stop-color="#2a3d7a"/>
-                </linearGradient>
-                <!-- 芯片投影 -->
-                <filter id="chipDrop" x="-40%" y="-40%" width="180%" height="180%">
-                    <feDropShadow dx="0" dy="2.5" stdDeviation="2.4" flood-color="#000814" flood-opacity="0.8"/>
-                </filter>
-                <!-- AI 文字微光 -->
-                <filter id="aiGlow" x="-50%" y="-50%" width="200%" height="200%">
-                    <feGaussianBlur stdDeviation="1" result="b"/>
-                    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-                </filter>
-            </defs>
-            <!-- 引脚：先画在主体下层 -->
-            <g stroke="url(#pinGrad)" stroke-width="2.6" stroke-linecap="round">
-                <path d="M17 25 H10 M17 32 H8.5 M17 39 H10 M47 25 H54 M47 32 H55.5 M47 39 H54 M25 17 V10 M32 17 V8.5 M39 17 V10 M25 47 V54 M32 47 V55.5 M39 47 V54"/>
-            </g>
-            <!-- 主体：带投影的深蓝金属块 -->
-            <g filter="url(#chipDrop)">
-                <rect x="16" y="16" width="32" height="32" rx="6" fill="url(#chipBody)" stroke="#5a7ad0" stroke-width="1"/>
-            </g>
-            <!-- 顶部高光斜面 -->
-            <path d="M22 17 H42 A6 6 0 0 1 48 23 V24 H16 V23 A6 6 0 0 1 22 17 Z" fill="url(#chipTop)"/>
-            <!-- 内嵌凹槽 + 底部反光边 -->
-            <rect x="24.5" y="24.5" width="15" height="15" rx="3" fill="url(#innerWell)" stroke="#0a1230" stroke-width="0.8"/>
-            <path d="M26 38 H38" stroke="#6f92e0" stroke-width="0.9" stroke-linecap="round" opacity="0.75"/>
-            <!-- AI 文字，带发光 -->
-            <text x="32" y="35.6" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#ffffff" filter="url(#aiGlow)">AI</text>
-        </svg>
+        <img class="ai-chip-icon" src="ai-orb.jpg" alt="AI 助手">
     </div>
 
     <!-- 聊天面板 -->
