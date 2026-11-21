@@ -77,10 +77,23 @@
 
 
         /* ========== 主界面 ========== */
-        #main-screen { display: none; opacity: 0; transition: opacity 0.8s ease; min-height: 100vh; background-image: url('二界面背景.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
+        #main-screen { display: none; opacity: 0; transition: opacity 0.8s ease; min-height: 100vh; background-image: url('bg.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
         .navbar { position: sticky; top: 0; z-index: 800; background: rgba(0, 64, 133, 0.75); backdrop-filter: blur(10px); color: white; padding: 15px 20px; display: flex; justify-content: center; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .navbar h2 { margin: 0; font-size: 32px; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
         .navbar h2 .study-text { font-size: 32px; }
+
+        /* ========== 主界面分类导航（首页/其他/我要投稿/关于我们/我的） ========== */
+        .nav-tabs { display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap; background: rgba(15, 23, 42, 0.82); backdrop-filter: blur(10px); padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); position: relative; z-index: 700; }
+        .nav-tab { border: none; background: transparent; color: rgba(255,255,255,0.72); font-size: 15px; font-weight: 500; padding: 9px 22px; border-radius: 10px; cursor: pointer; transition: all .2s; white-space: nowrap; }
+        .nav-tab:hover { color: #fff; background: rgba(255,255,255,0.1); }
+        .nav-tab.active { background: rgba(255,255,255,0.2); color: #fff; font-weight: bold; box-shadow: 0 2px 8px rgba(0,0,0,0.22); }
+        .nav-page { display: none; }
+        .nav-page.active { display: block; animation: pageFade .3s ease; }
+        @keyframes pageFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+        .page-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 58vh; gap: 16px; color: #fff; text-align: center; }
+        .page-placeholder .ph-icon { font-size: 60px; opacity: .85; filter: drop-shadow(0 3px 10px rgba(0,0,0,.4)); }
+        .page-placeholder .ph-title { font-size: 26px; font-weight: bold; text-shadow: 0 2px 8px rgba(0,0,0,.55); }
+        .page-placeholder .ph-desc { font-size: 14px; color: rgba(255,255,255,0.9); background: rgba(0,0,0,0.28); padding: 9px 20px; border-radius: 22px; }
 
         .container { padding: 20px; max-width: 1400px; margin: 0 auto; }
         .dashboard { display: flex; justify-content: space-around; align-items: center; background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 12px; padding: 15px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
@@ -505,7 +518,17 @@
            <h2 style="display:flex;align-items:center;gap:10px;"><img src="favicon.svg" alt="logo" style="width:30px;height:30px;">浩海<span class="study-text">study</span></h2>
            <div class="auth-area" id="auth-area"></div>
        </div>
+       <!-- 分类导航标签 -->
+       <div class="nav-tabs" id="nav-tabs">
+           <button class="nav-tab active" data-page="home" onclick="switchNavPage('home')">首页</button>
+           <button class="nav-tab" data-page="other" onclick="switchNavPage('other')">其他</button>
+           <button class="nav-tab" data-page="submit" onclick="switchNavPage('submit')">我要投稿</button>
+           <button class="nav-tab" data-page="about" onclick="switchNavPage('about')">关于我们</button>
+           <button class="nav-tab" data-page="mine" onclick="switchNavPage('mine')">我的</button>
+       </div>
         <div class="container">
+          <!-- ===== 首页（原有全部内容） ===== -->
+          <div class="nav-page active" id="page-home">
             <!-- 云端同步状态：让用户随时知道数据是云端真实数据还是本地缓存 -->
             <div class="sync-bar" id="sync-bar">
                 <span class="sync-dot" id="sync-dot"></span>
@@ -561,7 +584,44 @@
                     </div>
                     <div id="scenery-list" class="scenery-grid"></div>
                 </div>
-            </div> 
+            </div>
+          </div><!-- /page-home -->
+
+          <!-- ===== 其他（占位空白页） ===== -->
+          <div class="nav-page" id="page-other">
+              <div class="page-placeholder">
+                  <div class="ph-icon">🧩</div>
+                  <div class="ph-title">其他</div>
+                  <div class="ph-desc">页面建设中，敬请期待</div>
+              </div>
+          </div>
+
+          <!-- ===== 我要投稿（占位空白页） ===== -->
+          <div class="nav-page" id="page-submit">
+              <div class="page-placeholder">
+                  <div class="ph-icon">✍️</div>
+                  <div class="ph-title">我要投稿</div>
+                  <div class="ph-desc">页面建设中，敬请期待</div>
+              </div>
+          </div>
+
+          <!-- ===== 关于我们（占位空白页） ===== -->
+          <div class="nav-page" id="page-about">
+              <div class="page-placeholder">
+                  <div class="ph-icon">ℹ️</div>
+                  <div class="ph-title">关于我们</div>
+                  <div class="ph-desc">页面建设中，敬请期待</div>
+              </div>
+          </div>
+
+          <!-- ===== 我的（占位空白页） ===== -->
+          <div class="nav-page" id="page-mine">
+              <div class="page-placeholder">
+                  <div class="ph-icon">👤</div>
+                  <div class="ph-title">我的</div>
+                  <div class="ph-desc">页面建设中，敬请期待</div>
+              </div>
+          </div>
         </div>
     </div>
 
@@ -738,6 +798,17 @@
                     : /成功|已保存|欢迎|完成/.test(s) ? 'ok' : 'info';
             showToast(s, t);
         };
+
+        // 分类导航切换：首页 / 其他 / 我要投稿 / 关于我们 / 我的
+        function switchNavPage(page) {
+            document.querySelectorAll('.nav-tab').forEach(function (t) {
+                t.classList.toggle('active', t.getAttribute('data-page') === page);
+            });
+            document.querySelectorAll('.nav-page').forEach(function (p) {
+                p.classList.toggle('active', p.id === 'page-' + page);
+            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
 
         // ==========================================
         // ⚠️ 配置区
