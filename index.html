@@ -464,6 +464,7 @@
             <button class="nav-tab active" data-page="home" onclick="switchNavPage('home')">首页</button>
             <button class="nav-tab" data-page="courses" onclick="p0Enter('courses')">🎓 课程</button>
             <button class="nav-tab" data-page="teams" onclick="p0Enter('teams')">🤝 组队</button>
+            <button class="nav-tab" data-page="lostfound" onclick="p0Enter('lostfound')">🔍 互助</button>
             <button class="nav-tab" data-page="mine" onclick="p0Enter('mine')">我的</button>
         </div>
         <!-- 首页（原有起始内容） -->
@@ -547,7 +548,9 @@
                 <button class="p0-tab active" data-mod="all" onclick="p0Show('all')">📚 资料 · 比赛 · 美景</button>
                 <button class="p0-tab" data-mod="courses" onclick="p0Show('courses')">🎓 课程中心</button>
                 <button class="p0-tab" data-mod="teams" onclick="p0Show('teams')">🤝 组队广场</button>
+                <button class="p0-tab" data-mod="lostfound" onclick="p0Show('lostfound')">🔍 失物招领</button>
                 <button class="p0-tab" data-mod="mine" onclick="p0Show('mine')">👤 我的</button>
+                <button class="p0-tab" data-mod="stats" onclick="p0Show('stats')">📊 数据</button>
             </div>
             <div class="dashboard">
                 <div class="data-item"><h3 id="stat-doc">0</h3><p>共享资料</p></div>
@@ -604,7 +607,9 @@
             <!-- P0 新增模块：课程中心 / 组队广场 / 我的（内容由 assets/p0.js 渲染） -->
             <section class="p0-view" id="p0-courses"></section>
             <section class="p0-view" id="p0-teams"></section>
+            <section class="p0-view" id="p0-lostfound"></section>
             <section class="p0-view" id="p0-mine"></section>
+            <section class="p0-view" id="p0-stats"></section>
         </div>
     </div>
 
