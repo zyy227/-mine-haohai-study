@@ -158,16 +158,20 @@ export async function onRequest({ request, env }) {
                 const itemsRes = await fetch(SUPABASE_URL + '/rest/v1/site_items?select=kind,status,view_count', { headers: adminHeaders });
                 const items = itemsRes.ok ? await itemsRes.json() : [];
 
-                // 注册用户数
+                // 注册用户数：直接取用户列表长度（最可靠），不再依赖 content-range 头
                 let userCount = 0;
                 try {
-                    const uRes = await fetch(SUPABASE_URL + '/auth/v1/admin/users?per_page=1', {
-                        headers: Object.assign({}, adminHeaders, { 'Prefer': 'count=exact' })
+                    const uRes = await fetch(SUPABASE_URL + '/auth/v1/admin/users?per_page=200', {
+                        headers: adminHeaders
                     });
+                    if (uRes.ok) {
+                        const ud = await uRes.json();
+                        userCount = Array.isArray(ud) ? ud.length : ((ud.users || []).length);
+                    }
+                    // 兜底：若响应头带总数且比列表长度大，用总数
                     const cr = uRes.headers.get('content-range') || '';
                     const m = /\/(\d+)/.exec(cr);
-                    if (m) userCount = Number(m[1]);
-                    else { const ud = await uRes.json(); userCount = Array.isArray(ud) ? ud.length : (ud.users || []).length; }
+                    if (m && Number(m[1]) > userCount) userCount = Number(m[1]);
                 } catch (_) {}
 
                 // 统计表：按 metric 汇总（总量 + 今日）
