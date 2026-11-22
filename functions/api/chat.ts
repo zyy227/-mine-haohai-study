@@ -53,7 +53,7 @@ export async function onRequestPost({ request, env, ctx }) {
         return Response.json({ error: { message: '缺少 model 或 messages 参数' } }, { status: 400 });
     }
     // 限制单次输出长度：既能让回答更快结束，也防止一次烧掉太多 token
-    const maxTokens = Math.min(Math.max(Number(max_tokens) || 1200, 200), 2000);
+    const maxTokens = Math.min(Math.max(Number(max_tokens) || 1200, 200), 4096);
 
     // ① 模型白名单：只放行本站使用的免费模型，拒绝一切付费模型请求
     if (!ALLOWED_MODELS.has(model)) {
