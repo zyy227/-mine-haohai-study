@@ -13,7 +13,7 @@
     <meta name="apple-mobile-web-app-title" content="浩海study">
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="stylesheet" href="assets/p0.css?v=20261122b">
-    <link rel="stylesheet" href="assets/hh-plus.css?v=20261122c">
+    <link rel="stylesheet" href="assets/hh-plus.css?v=20261122d">
     <title>浩海 study · 校园课程与组队</title>
     <style>
         /* ========== 全局与基础样式 ========== */
@@ -962,19 +962,24 @@ const FALLBACK_MODEL = 'openrouter/free';
             setAuthMsg('');
             try {
                 if (authTab === 'register') {
-                    const { data, error } = await withTimeout(supabaseClient.auth.signUp({ email, password }), 20000, '注册');
-                    if (error) throw error;
-                    // 关闭邮箱验证后，signUp 会直接返回 session；
-                    // 万一没返回（例如后台还开着 Confirm email），再尝试直接登录一次。
-                    if (!data.session) {
-                        const { data: retry, error: retryError } = await withTimeout(
-                            supabaseClient.auth.signInWithPassword({ email, password }), 20000, '登录'
-                        );
-                        if (retryError || !retry.session) {
-                            setAuthMsg('注册成功，但还需要邮箱验证。请管理员在 Supabase 关闭 Confirm email，或去邮箱点验证链接后再登录。', 'err');
-                            return;
-                        }
+                    // 注册走后端：用 service_role 直接创建“已确认”用户，
+                    // 不依赖 Supabase 的 Confirm email 开关，也不会发验证邮件。
+                    const regRes = await withTimeout(fetch('/api/auth/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: email, password: password })
+                    }), 20000, '注册');
+                    let regData = null;
+                    try { regData = await regRes.json(); } catch (_) { regData = null; }
+                    if (!regRes.ok) {
+                        throw new Error((regData && regData.error) || ('注册失败 HTTP ' + regRes.status));
                     }
+                    // 账号已创建且已确认，立刻用同一密码登录
+                    const { data, error } = await withTimeout(
+                        supabaseClient.auth.signInWithPassword({ email, password }), 20000, '登录'
+                    );
+                    if (error) throw error;
+                    if (!data.session) throw new Error('注册成功但登录失败，请重试。');
                 } else {
                     const { data, error } = await withTimeout(supabaseClient.auth.signInWithPassword({ email, password }), 20000, '登录');
                     if (error) throw error;
@@ -2451,6 +2456,6 @@ const FALLBACK_MODEL = 'openrouter/free';
         </div>
     </div>
 <script src="assets/p0.js?v=20261122b"></script>
-<script src="assets/hh-plus.js?v=20261122c"></script>
+<script src="assets/hh-plus.js?v=20261122d"></script>
 </body>
 </html>
