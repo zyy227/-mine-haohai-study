@@ -278,9 +278,10 @@ function p0RenderCourseDetail(d) {
         var btn = x.link
             ? '<a class="p0-btn sm" href="' + p0Esc(p0Safe(x.link)) + '" target="_blank" rel="noopener noreferrer" onclick="p0TrackDoc(' + Number(x.id) + ')">下载 / 预览</a>'
             : '<span class="p0-chip gray">未附文件</span>';
+        var ownerName = (typeof hhDisplayNameForUser === 'function') ? hhDisplayNameForUser(x.owner_id, x.owner_email, '') : '';
         return '<div class="p0-list-item"><div class="p0-li-main">' +
             '<div class="p0-li-title">📄 ' + p0Esc(x.name || '未命名资料') + '</div>' +
-            '<div class="p0-li-sub">' + p0Esc(x.type || '') + (x.owner_email ? ' · by ' + p0Esc(String(x.owner_email).split('@')[0]) : '') + '</div>' +
+            '<div class="p0-li-sub">' + p0Esc(x.type || '') + (ownerName ? ' · by ' + p0Esc(ownerName) : '') + '</div>' +
             '</div><div class="p0-li-actions">' + btn + '</div></div>';
     }).join('') : '<div class="p0-empty">这门课还没有资料。登录后点下方按钮，把课件 / 往年题 / 笔记传上来。</div>';
 
@@ -1089,7 +1090,7 @@ function p0RenderMine(d) {
     if (!sec) return;
     var p = d.profile || {};
     var counts = d.counts || {};
-    var nickname = p.nickname || (currentUser && currentUser.email ? String(currentUser.email).split('@')[0] : '同学');
+    var nickname = p.nickname || (typeof displayUserName === 'function' ? displayUserName(currentUser) : '同学');
     var verified = !!p.verified;
     var initial = String(nickname).charAt(0).toUpperCase();
 
@@ -1145,7 +1146,6 @@ function p0RenderMine(d) {
                     '<div class="p0-profile-name">' + p0Esc(nickname) +
                         (verified ? '<span class="p0-badge">✅ 校园已认证</span>' : '<span class="p0-badge off">未认证</span>') +
                     '</div>' +
-                    '<div class="p0-profile-sub">' + p0Esc(p.email || (currentUser && currentUser.email) || '') + '</div>' +
                     '<div class="p0-profile-sub">' + p0Esc([p.college, p.major, p.grade ? p.grade + ' 级' : ''].filter(Boolean).join(' · ') || '还没填学院 / 专业 / 年级') + '</div>' +
                     (p.bio ? '<div class="p0-profile-sub">' + p0Esc(p.bio) + '</div>' : '') +
                 '</div>' +
