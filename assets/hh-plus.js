@@ -71,8 +71,6 @@
     var html = '';
     html += '<div id="hh-reading-progress"></div>';
 
-    html += '<button id="hh-fab" type="button" title="学习专注面板 / Ctrl+K 快捷导航">FOCUS</button>';
-
     html += '<div id="hh-focus-panel" aria-label="学习专注面板">';
     html += '  <div class="hh-focus-head"><span>学习专注</span><span class="hh-focus-close" id="hh-focus-close">&times;</span></div>';
     html += '  <div class="hh-focus-body">';
@@ -112,6 +110,20 @@
     html += '</div>';
 
     document.body.insertAdjacentHTML('beforeend', html);
+
+    var bar = document.getElementById('p0-bar');
+    var fab = document.createElement('button');
+    fab.id = 'hh-fab';
+    fab.type = 'button';
+    fab.className = 'p0-tab';
+    fab.textContent = '专注';
+    fab.title = '学习专注面板';
+    if (bar && bar.firstChild) {
+      bar.insertBefore(fab, bar.firstChild);
+    } else {
+      fab.classList.add('hh-fab-fallback');
+      document.body.appendChild(fab);
+    }
   }
 
   /* ---------------- 阅读进度条 ---------------- */

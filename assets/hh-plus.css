@@ -15,35 +15,41 @@
   transition: width 0.08s linear;
 }
 
+/* 专注按钮：放进 p0-bar，排在「资料 · 比赛 · 美景」左边 */
 #hh-fab {
-  position: fixed;
-  left: 18px;
-  bottom: 18px;
-  width: 54px;
-  height: 54px;
   border: none;
-  border-radius: 50%;
-  z-index: 8500;
+  margin-right: 4px;
+  padding: 9px 16px;
+  border-radius: 10px;
   cursor: pointer;
   color: #fff;
   font-size: 14px;
-  font-weight: 800;
+  font-family: inherit;
+  font-weight: 700;
   letter-spacing: 0.5px;
+  white-space: nowrap;
   background: linear-gradient(135deg, #667eea, #764ba2);
-  box-shadow: 0 10px 30px rgba(80, 70, 180, 0.35), inset 0 0 0 2px rgba(255, 255, 255, 0.28);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.28);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 #hh-fab:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 14px 34px rgba(80, 70, 180, 0.45), inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
 }
 #hh-fab.running {
   background: linear-gradient(135deg, #11998e, #38ef7d);
   animation: hh-pulse 1.8s ease-in-out infinite;
 }
 @keyframes hh-pulse {
-  0%, 100% { box-shadow: 0 10px 30px rgba(17, 153, 142, 0.35), inset 0 0 0 2px rgba(255,255,255,.28); }
-  50% { box-shadow: 0 10px 42px rgba(17, 153, 142, 0.6), inset 0 0 0 2px rgba(255,255,255,.45); }
+  0%, 100% { box-shadow: 0 4px 12px rgba(17, 153, 142, 0.3); }
+  50% { box-shadow: 0 6px 20px rgba(17, 153, 142, 0.55); }
+}
+/* 极端情况：页面上找不到 p0-bar 时，仍保留一个可点的浮动按钮 */
+#hh-fab.hh-fab-fallback {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  z-index: 8500;
 }
 
 #hh-focus-panel {
@@ -357,7 +363,7 @@
 }
 
 @media (max-width: 768px) {
-  #hh-fab { left: 14px; bottom: 14px; width: 50px; height: 50px; }
+  #hh-fab.hh-fab-fallback { left: 14px; bottom: 14px; width: 50px; height: 50px; }
   #hh-focus-panel { left: 14px; bottom: 74px; width: calc(100vw - 28px); }
   #hh-cmd-mask { padding-top: 7vh; }
   .hh-cmd-foot { display: none; }
