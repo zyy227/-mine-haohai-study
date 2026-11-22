@@ -1,0 +1,12 @@
+{
+  "appId": "com.haohai.study",
+  "appName": "浩海study",
+  "webDir": "www",
+  "server": {
+    "url": "https://mine-haohai-study.pages.dev",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
