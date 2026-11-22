@@ -790,11 +790,31 @@ const PRIMARY_MODEL = 'google/gemini-2.0-flash-exp:free';
 // 备用模型：OpenRouter 免费路由（主模型失败/限流时兜底）
 const FALLBACK_MODEL = 'openrouter/free';
 
+        // 把 Supabase SDK 的请求改走本站 /api/supabase 代理：
+        // 国内手机直连 *.supabase.co 经常超时，导致登录/注册报"网络连接失败"
+        function supabaseFetch(input, init) {
+            const nativeFetch = window.fetch.bind(window);
+            const isReq = !!(input && typeof input === 'object' && input.url);
+            const url = (typeof input === 'string') ? input : (isReq ? input.url : '');
+            if (url.indexOf(SUPABASE_URL) !== 0) return nativeFetch(input, init);
+
+            const target = '/api/supabase' + url.slice(SUPABASE_URL.length);
+            if (!isReq) return nativeFetch(target, init);
+
+            return (async function () {
+                const method = input.method || 'GET';
+                const headers = new Headers(input.headers);
+                const opts = { method: method, headers: headers, signal: input.signal };
+                if (method !== 'GET' && method !== 'HEAD') opts.body = await input.arrayBuffer();
+                return nativeFetch(target, opts);
+            })();
+        }
+
         // Supabase SDK 从 CDN 加载；若手机网络导致 CDN 加载失败，用一个安全的空壳兜底，
         // 保证页面不会整段脚本崩溃（此时清单读写仍可走本站 /api/items 中转）
         const SDK_ERR = new Error('Supabase SDK 未加载');
         const supabaseClient = (typeof supabase !== 'undefined' && supabase.createClient)
-            ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+            ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { global: { fetch: supabaseFetch } })
             : {
                 // 造一个“链式查询对象”：select().order() 和 insert()/delete() 都返回同一个 thenable，
                 // 让 await 得到 { data:[], error }，且 .order() 调用后仍然可 await

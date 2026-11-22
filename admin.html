@@ -199,8 +199,24 @@
         const SUPABASE_URL = 'https://ihvusuaeksxynxewcmjs.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_NrbDiThGb-gPPSAVmVZXyA_PXXBslVc';
         const ADMIN_EMAIL = '2984054909@qq.com';
+        // 管理员登录也走本站代理，避免手机直连 supabase.co 超时
+        function supabaseFetch(input, init) {
+            const nativeFetch = window.fetch.bind(window);
+            const isReq = !!(input && typeof input === 'object' && input.url);
+            const url = (typeof input === 'string') ? input : (isReq ? input.url : '');
+            if (url.indexOf(SUPABASE_URL) !== 0) return nativeFetch(input, init);
+            const target = '/api/supabase' + url.slice(SUPABASE_URL.length);
+            if (!isReq) return nativeFetch(target, init);
+            return (async function () {
+                const method = input.method || 'GET';
+                const headers = new Headers(input.headers);
+                const opts = { method: method, headers: headers, signal: input.signal };
+                if (method !== 'GET' && method !== 'HEAD') opts.body = await input.arrayBuffer();
+                return nativeFetch(target, opts);
+            })();
+        }
         const supabaseClient = (typeof supabase !== 'undefined' && supabase.createClient)
-            ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+            ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { global: { fetch: supabaseFetch } }) : null;
 
         function msg(t) { document.getElementById('gate-msg').textContent = t || ''; }
         function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
