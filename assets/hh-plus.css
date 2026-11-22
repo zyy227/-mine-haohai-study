@@ -1,0 +1,364 @@
+/* 浩海 study 学习增强包 v1：快捷面板 + 番茄钟 + 阅读进度 */
+/* 只新增样式，不修改原有 p0.css */
+
+#hh-reading-progress {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 3px;
+  width: 0;
+  z-index: 30000;
+  pointer-events: none;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(90deg, #667eea, #764ba2, #ff9a9e);
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.65);
+  transition: width 0.08s linear;
+}
+
+#hh-fab {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  width: 54px;
+  height: 54px;
+  border: none;
+  border-radius: 50%;
+  z-index: 8500;
+  cursor: pointer;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  box-shadow: 0 10px 30px rgba(80, 70, 180, 0.35), inset 0 0 0 2px rgba(255, 255, 255, 0.28);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+#hh-fab:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 34px rgba(80, 70, 180, 0.45), inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+#hh-fab.running {
+  background: linear-gradient(135deg, #11998e, #38ef7d);
+  animation: hh-pulse 1.8s ease-in-out infinite;
+}
+@keyframes hh-pulse {
+  0%, 100% { box-shadow: 0 10px 30px rgba(17, 153, 142, 0.35), inset 0 0 0 2px rgba(255,255,255,.28); }
+  50% { box-shadow: 0 10px 42px rgba(17, 153, 142, 0.6), inset 0 0 0 2px rgba(255,255,255,.45); }
+}
+
+#hh-focus-panel {
+  position: fixed;
+  left: 18px;
+  bottom: 84px;
+  width: 326px;
+  max-width: calc(100vw - 36px);
+  z-index: 8600;
+  display: none;
+  overflow: hidden;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 22px 60px rgba(40, 35, 90, 0.22);
+  backdrop-filter: blur(16px);
+}
+#hh-focus-panel.open {
+  display: block;
+  animation: hh-slide-up 0.22s ease;
+}
+@keyframes hh-slide-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hh-focus-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  color: #2d2a5d;
+  font-size: 15px;
+  font-weight: 800;
+}
+.hh-focus-close {
+  width: 28px;
+  height: 28px;
+  line-height: 24px;
+  text-align: center;
+  border-radius: 50%;
+  background: #f0f1ff;
+  color: #6c63a8;
+  cursor: pointer;
+  font-size: 20px;
+}
+.hh-focus-close:hover { background: #e5e7ff; }
+
+.hh-focus-body { padding: 0 16px 16px; }
+.hh-timer-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 6px 0 12px;
+}
+.hh-timer-ring {
+  width: 96px;
+  height: 96px;
+  flex: 0 0 96px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(#667eea 0deg, rgba(102, 126, 234, 0.14) 0deg);
+}
+.hh-timer-inner {
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 2px 8px rgba(70, 60, 130, 0.08);
+}
+.hh-timer-time {
+  font-size: 20px;
+  font-weight: 900;
+  color: #4b3f9b;
+  font-variant-numeric: tabular-nums;
+}
+.hh-timer-meta { min-width: 0; }
+.hh-timer-title {
+  color: #5b5786;
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.hh-timer-desc {
+  color: #8b89a8;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.hh-today-stat {
+  margin-top: 8px;
+  display: inline-block;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #f1f3ff;
+  color: #5a54a5;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.hh-mode-row, .hh-control-row, .hh-task-add {
+  display: flex;
+  gap: 8px;
+}
+.hh-mode-row { margin: 2px 0 10px; }
+.hh-mode-btn {
+  flex: 1;
+  border: 1px solid #e2e3f5;
+  background: #fff;
+  color: #6b6796;
+  border-radius: 10px;
+  padding: 7px 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.hh-mode-btn.active {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  box-shadow: 0 6px 14px rgba(102, 126, 234, 0.25);
+}
+.hh-control-row { margin-bottom: 12px; }
+.hh-main-btn, .hh-mini-btn, .hh-add-btn {
+  border: none;
+  cursor: pointer;
+  border-radius: 10px;
+  font-weight: 800;
+}
+.hh-main-btn {
+  flex: 1;
+  padding: 9px 10px;
+  color: #fff;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+.hh-mini-btn {
+  padding: 9px 12px;
+  color: #625da0;
+  background: #f0f1ff;
+}
+.hh-task-add { margin-bottom: 8px; }
+.hh-task-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #e2e3f5;
+  border-radius: 10px;
+  padding: 8px 10px;
+  outline: none;
+  font-size: 13px;
+}
+.hh-task-input:focus { border-color: #8f86ea; box-shadow: 0 0 0 3px rgba(102,126,234,.12); }
+.hh-add-btn {
+  padding: 8px 12px;
+  color: #fff;
+  background: #4f46b5;
+}
+.hh-task-list {
+  max-height: 170px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hh-task-empty {
+  padding: 12px;
+  text-align: center;
+  color: #9a98b5;
+  font-size: 12px;
+  background: #fafaff;
+  border-radius: 10px;
+}
+.hh-task-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 10px;
+  background: #fafaff;
+}
+.hh-task-item input[type="checkbox"] { accent-color: #667eea; }
+.hh-task-text {
+  flex: 1;
+  min-width: 0;
+  color: #4d4a72;
+  font-size: 13px;
+  word-break: break-word;
+}
+.hh-task-item.done .hh-task-text {
+  text-decoration: line-through;
+  color: #a6a4ba;
+}
+.hh-task-del {
+  border: none;
+  background: transparent;
+  color: #b0adc4;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+.hh-task-del:hover { color: #e05b7a; }
+
+/* 快捷命令面板 */
+#hh-cmd-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 10vh 16px 20px;
+  background: rgba(22, 20, 45, 0.46);
+  backdrop-filter: blur(6px);
+}
+#hh-cmd-mask.open { display: flex; }
+.hh-cmd-box {
+  width: min(640px, 100%);
+  max-height: 76vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px;
+  background: rgba(255,255,255,.97);
+  box-shadow: 0 28px 80px rgba(20, 15, 60, 0.35);
+  animation: hh-cmd-in 0.18s ease;
+}
+@keyframes hh-cmd-in {
+  from { opacity: 0; transform: translateY(-12px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.hh-cmd-input-wrap {
+  padding: 14px 16px;
+  border-bottom: 1px solid #ececf6;
+}
+#hh-cmd-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 17px;
+  color: #33315c;
+  background: transparent;
+}
+#hh-cmd-input::placeholder { color: #aaa8c0; }
+.hh-cmd-list {
+  padding: 8px;
+  overflow: auto;
+}
+.hh-cmd-group {
+  padding: 8px 10px 4px;
+  color: #9a98b2;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+.hh-cmd-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 11px;
+  cursor: pointer;
+}
+.hh-cmd-item.active, .hh-cmd-item:hover { background: #f0f1ff; }
+.hh-cmd-icon {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  font-size: 13px;
+  font-weight: 900;
+}
+.hh-cmd-main { min-width: 0; flex: 1; }
+.hh-cmd-title {
+  color: #45416f;
+  font-size: 14px;
+  font-weight: 800;
+}
+.hh-cmd-sub {
+  margin-top: 2px;
+  color: #9895b0;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hh-cmd-empty {
+  padding: 28px 12px;
+  text-align: center;
+  color: #9a98b2;
+  font-size: 13px;
+}
+.hh-cmd-foot {
+  padding: 10px 16px;
+  border-top: 1px solid #ececf6;
+  color: #a2a0b8;
+  font-size: 11px;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.hh-hit {
+  animation: hh-hit 1.35s ease;
+}
+@keyframes hh-hit {
+  0%, 100% { box-shadow: none; }
+  30% { box-shadow: 0 0 0 4px rgba(102,126,234,.32), 0 14px 34px rgba(70,50,160,.2); }
+}
+
+@media (max-width: 768px) {
+  #hh-fab { left: 14px; bottom: 14px; width: 50px; height: 50px; }
+  #hh-focus-panel { left: 14px; bottom: 74px; width: calc(100vw - 28px); }
+  #hh-cmd-mask { padding-top: 7vh; }
+  .hh-cmd-foot { display: none; }
+}
