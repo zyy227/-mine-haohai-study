@@ -51,6 +51,7 @@
         .start-auth .auth-btn.primary { background: #ffd76a; color: #7a4b00; border: none; }
         .start-auth .auth-user { text-shadow: 0 2px 6px rgba(0,0,0,.6); }
         
+        .search-area { position: relative; width: 100%; max-width: 600px; }
         .search-container { position: relative; display: flex; align-items: center; background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(10px); border-radius: 50px; padding: 8px 10px; width: 100%; max-width: 600px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: transform 0.3s ease;}
         .search-container:hover { transform: scale(1.02); }
         .search-input { flex: 1; border: none; outline: none; font-size: 18px; padding: 10px 20px; border-radius: 50px; background: transparent; color: #333; }
@@ -63,7 +64,7 @@
                 /* ===== 高级筛选 ===== */
         .filter-trigger { background:#f0f5ff; color:#2f6fed; border:1px solid #adc6ff; border-radius:18px; padding:6px 12px; font-size:14px; font-weight:bold; cursor:pointer; white-space:nowrap; flex-shrink:0; margin-right:8px; }
         .filter-trigger:hover { background:#e0ebff; }
-        .filter-panel { display:none; position:absolute; z-index:50; top:calc(100% + 8px); left:50%; transform:translateX(-50%); margin-top:0; width:100%; max-width:600px; max-height:70vh; overflow-y:auto; background:rgba(255,255,255,0.97); backdrop-filter:blur(12px); border-radius:14px; padding:20px; box-shadow:0 12px 40px rgba(0,0,0,0.2); }
+        .filter-panel { display:none; position:absolute; z-index:9000; top:calc(100% + 8px); left:0; right:0; margin-top:0; width:100%; max-width:600px; max-height:60vh; overflow-y:auto; background:rgba(255,255,255,0.98); backdrop-filter:blur(12px); border-radius:14px; padding:20px; box-shadow:0 18px 50px rgba(0,0,0,0.28); }
         .filter-row { display:flex; gap:12px; margin-bottom:16px; }
         .filter-field { flex:1; }
         .filter-field label { display:block; font-size:13px; color:#555; margin-bottom:6px; font-weight:bold; }
@@ -475,6 +476,7 @@
         <div class="start-header">
            <div class="welcome-text"><img src="favicon.svg" alt="浩海 logo" class="brand-logo">浩海<span class="study-text">study</span></div>
            <div class="start-auth" id="start-auth"></div>
+                        <div class="search-area">
                         <div class="search-container">
                 <button class="filter-trigger" onclick="toggleFilterPanel()">⚗ 高级筛选</button>
                 <input type="text" id="global-search" class="search-input" placeholder="搜索资料、比赛、美景..." onkeydown="handleSearchEnter(event)">
@@ -514,6 +516,7 @@
                     <button class="filter-apply" onclick="applyFilter()">应用筛选</button>
                 </div>
             </div>
+            </div><!-- /search-area -->
 
             <!-- 📰 每日新闻速览 -->
             <div class="news-card">
