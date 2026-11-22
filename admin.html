@@ -507,7 +507,11 @@
 
         // ===== 管理端内容预览（不用跳回用户界面） =====
         function safeUrl(u) {
-            const s = String(u || '').trim();
+            let s = String(u || '').trim();
+            // Supabase 文件也走本站代理，避免手机直连失败
+            if (/^https?:\/\//i.test(s) && typeof SUPABASE_URL === 'string' && s.indexOf(SUPABASE_URL) === 0) {
+                s = '/api/supabase' + s.slice(SUPABASE_URL.length);
+            }
             return /^(https?:\/\/|\/)/i.test(s) ? s : '';
         }
         function previewItem(type, id) {
