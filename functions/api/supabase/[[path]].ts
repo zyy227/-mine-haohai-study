@@ -56,6 +56,10 @@ export async function onRequest({ request, params, env }) {
         const v = upstream.headers.get(k);
         if (v) outHeaders.set(k, v);
     });
+    // 公开图片/文件让浏览器缓存一天，避免每次打开详情都重新走函数
+    if (method === 'GET' && path.indexOf('/storage/v1/') === 0) {
+        outHeaders.set('Cache-Control', 'public, max-age=86400');
+    }
 
     return new Response(upstream.body, { status: upstream.status, headers: outHeaders });
 }
