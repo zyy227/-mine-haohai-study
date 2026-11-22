@@ -5,11 +5,12 @@
  *
  * 安全说明：
  *   · service_role 只存在于 Cloudflare 环境变量，前端拿不到
- *   · 只接受 email + password，不接受任意字段
+ *   · 只接受 email + password + username，不接受任意字段
+ *   · 注册时把 username 写进 profiles.nickname，网页前台只显示用户名
  *   · 这是“关闭邮箱验证”的替代方案，适合校园比赛/内部使用；
  *     公开运营时建议加邀请码/频率限制，避免被批量注册
  *
- * 接口：POST /api/auth/register  { email, password } → { ok, user }
+ * 接口：POST /api/auth/register  { email, password, username } → { ok, user }
  */
 
 const DEFAULT_URL = 'https://ihvusuaeksxynxewcmjs.supabase.co';
@@ -20,6 +21,10 @@ function json(data, status) {
 
 function validPassword(pw) {
     return typeof pw === 'string' && pw.length >= 6 && /[A-Za-z]/.test(pw) && /\d/.test(pw);
+}
+
+function validUsername(name) {
+    return typeof name === 'string' && /^[\u4e00-\u9fa5A-Za-z0-9_-]{2,16}$/.test(name);
 }
 
 export async function onRequest({ request, env }) {
@@ -39,8 +44,12 @@ export async function onRequest({ request, env }) {
 
     const email = String(body && body.email || '').trim().toLowerCase();
     const password = String(body && body.password || '');
+    const username = String(body && body.username || '').trim();
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return json({ error: '请输入正确的邮箱地址' }, 400);
+    }
+    if (!validUsername(username)) {
+        return json({ error: '用户名需 2-16 个字，支持中文、字母、数字、下划线和短横线' }, 400);
     }
     if (!validPassword(password)) {
         return json({ error: '密码至少 6 位，且同时包含字母和数字' }, 400);
@@ -60,7 +69,8 @@ export async function onRequest({ request, env }) {
             body: JSON.stringify({
                 email: email,
                 password: password,
-                email_confirm: true   // 关键：直接标记为已确认
+                email_confirm: true,   // 关键：直接标记为已确认
+                user_metadata: { username: username }
             })
         });
     } catch (err) {
@@ -79,11 +89,38 @@ export async function onRequest({ request, env }) {
         return json({ error: '创建账号失败：' + (msg || ('HTTP ' + upstream.status)) }, 502);
     }
 
+    // 把注册时填的用户名写进 profiles.nickname；触发器可能已按邮箱建过行，这里用 upsert 覆盖
+    let profileWarning = '';
+    const uid = data && data.id;
+    if (uid) {
+        try {
+            const profileRes = await fetch(SUPABASE_URL + '/rest/v1/profiles?on_conflict=id', {
+                method: 'POST',
+                headers: {
+                    'apikey': SERVICE_ROLE,
+                    'Authorization': 'Bearer ' + SERVICE_ROLE,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'resolution=merge-duplicates,return=minimal'
+                },
+                body: JSON.stringify([{ id: uid, nickname: username }])
+            });
+            if (!profileRes.ok) {
+                profileWarning = '账号已创建，但用户名保存失败，可在“我的-编辑资料”里补填昵称';
+                console.warn('保存用户名失败：', await profileRes.text());
+            }
+        } catch (err) {
+            profileWarning = '账号已创建，但用户名保存失败，可在“我的-编辑资料”里补填昵称';
+            console.warn('保存用户名异常：', err);
+        }
+    }
+
     return json({
         ok: true,
         user: {
-            id: data && data.id,
-            email: (data && data.email) || email
-        }
+            id: uid,
+            email: (data && data.email) || email,
+            name: username
+        },
+        profile_warning: profileWarning
     });
 }
