@@ -27,6 +27,21 @@
             margin-left: 6px;     /* 和前面的“浩海”拉开一点距离 */
             letter-spacing: 1px;
         }
+        /* 下载手机版入口 */
+        .download-fab {
+            position: fixed; left: 14px; bottom: 18px; z-index: 9500;
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 10px 14px; border-radius: 999px;
+            background: rgba(255,255,255,0.96); color: #004085;
+            font-size: 13px; font-weight: 800; text-decoration: none;
+            border: 1px solid #dbe7fb; box-shadow: 0 8px 24px rgba(20,45,90,0.18);
+            white-space: nowrap;
+        }
+        .download-fab:hover { background: #fff; transform: translateY(-1px); }
+        .native-app .download-fab { display: none !important; }
+        @media (max-width: 768px) {
+            .download-fab { left: 12px; bottom: 14px; padding: 9px 12px; font-size: 12px; }
+        }
         /* ========== 开始界面 ========== */
         #start-screen {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -420,6 +435,9 @@
     </script>
 </head>
 <body>
+
+    <!-- 下载手机版入口（安装到主屏幕/APK 后自动隐藏） -->
+    <a class="download-fab" href="/download/" title="下载手机版">📱 下载手机版</a>
 
     <!-- ================= 弹窗区 ================= -->
     <div id="doc-detail-modal">
@@ -2571,5 +2589,24 @@ const FALLBACK_MODEL = 'openrouter/free';
         </div>
     </div>
 <script src="assets/p0.js?v=20261122b"></script>
+<script>
+    // PWA：注册 Service Worker（只在 https 下），并在已安装/APK 内隐藏“下载手机版”入口
+    (function () {
+        try {
+            var ua = navigator.userAgent || '';
+            var native = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform())
+                || /;\s*wv\)/i.test(ua);
+            var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+                || window.navigator.standalone === true;
+            if (native || standalone) document.body.classList.add('native-app');
+        } catch (_) {}
+
+        if ('serviceWorker' in navigator && location.protocol === 'https:') {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js').catch(function () {});
+            });
+        }
+    })();
+</script>
 </body>
 </html>
