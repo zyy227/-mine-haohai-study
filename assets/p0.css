@@ -125,6 +125,13 @@
     background: linear-gradient(135deg, #7f77dd, #534ab7); color: #fff;
     display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700;
 }
+.p0-avatar.avatar-img { object-fit: cover; border: 3px solid rgba(255,255,255,.8); box-shadow: 0 4px 14px rgba(20,45,90,.18); }
+.p0-avatar.avatar-fallback { display: flex; }
+.p0-avatar-edit { display: flex; align-items: center; gap: 16px; margin: 6px 0; }
+.p0-avatar-preview { width: 64px; height: 64px; object-fit: cover; border: 3px solid #fff; box-shadow: 0 4px 14px rgba(20,45,90,.18); }
+.p0-avatar-preview[style*="display: none"], .p0-avatar-preview:not([src]) { display: none; }
+.p0-avatar-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.p0-avatar-tip { font-size: 12px; color: #8a97a8; margin-top: 4px; }
 .p0-profile-name { font-size: 20px; font-weight: 700; color: #0f2f57; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .p0-profile-sub { color: #6b7c93; font-size: 13px; margin-top: 4px; }
 .p0-badge { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 700; background: #e8f8ef; color: #148f4b; }

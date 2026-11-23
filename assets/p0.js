@@ -55,6 +55,18 @@ function p0Date(s) {
     return d.toLocaleDateString('zh-CN');
 }
 
+// 头像 HTML：有 avatar_url 显示图片（加载失败回退首字），否则显示首字
+function p0AvatarHtml(p, nickname) {
+    var initial = String(nickname || 'U').charAt(0).toUpperCase() || 'U';
+    var url = p && p.avatar_url ? String(p.avatar_url) : '';
+    if (url) {
+        return '<img class="p0-avatar avatar-img" src="' + p0Esc(p0Safe(url)) + '" alt="头像" ' +
+            'onerror="this.style.display=\'none\';var f=this.nextElementSibling;if(f)f.style.display=\'flex\'">' +
+            '<span class="p0-avatar avatar-fallback" style="display:none">' + p0Esc(initial) + '</span>';
+    }
+    return '<div class="p0-avatar">' + p0Esc(initial) + '</div>';
+}
+
 function p0KindLabel(k) {
     return ({ competition: '竞赛组队', course: '课程大作业', study: '学习搭子' })[k] || '组队';
 }
@@ -1089,10 +1101,16 @@ function p0RenderMine(d) {
     var sec = document.getElementById('p0-mine');
     if (!sec) return;
     var p = d.profile || {};
+    // 同步头像/昵称到顶部栏 + 本地缓存（网页/APP/电脑端同一份代码，自动一致）
+    if (p && typeof currentUser !== 'undefined' && currentUser) {
+        currentUser.nickname = p.nickname || currentUser.nickname || '';
+        currentUser.avatar_url = p.avatar_url || '';
+        if (typeof cacheUserProfile === 'function') cacheUserProfile(currentUser.id, { nickname: currentUser.nickname, avatar_url: currentUser.avatar_url });
+        if (typeof renderAuthUI === 'function') renderAuthUI();
+    }
     var counts = d.counts || {};
     var nickname = p.nickname || (typeof displayUserName === 'function' ? displayUserName(currentUser) : '同学');
     var verified = !!p.verified;
-    var initial = String(nickname).charAt(0).toUpperCase();
 
     var incoming = d.incoming || [];
     var incomingHtml = incoming.length ? incoming.map(function (a) {
@@ -1141,7 +1159,7 @@ function p0RenderMine(d) {
     sec.innerHTML =
         '<div class="p0-panel">' +
             '<div class="p0-profile">' +
-                '<div class="p0-avatar">' + p0Esc(initial) + '</div>' +
+                p0AvatarHtml(p, nickname) +
                 '<div style="min-width:0">' +
                     '<div class="p0-profile-name">' + p0Esc(nickname) +
                         (verified ? '<span class="p0-badge">✅ 校园已认证</span>' : '<span class="p0-badge off">未认证</span>') +
@@ -1172,7 +1190,19 @@ function p0RenderMine(d) {
 function p0EditProfile() {
     if (!p0IsLogged()) return;
     var p = (P0.mine && P0.mine.profile) || {};
+    var avatar = p.avatar_url || (typeof currentUser !== 'undefined' && currentUser ? currentUser.avatar_url : '') || '';
     var body =
+        '<div class="p0-field"><label>头像（点击更换，建议正方形图片）</label>' +
+            '<div class="p0-avatar-edit">' +
+                '<img id="p0-avatar-preview" class="p0-avatar p0-avatar-preview" src="' + p0Esc(p0Safe(avatar)) + '" alt="头像预览" onerror="this.style.display=\'none\'">' +
+                '<div class="p0-avatar-actions">' +
+                    '<label class="p0-btn sm" for="p0-avatar-file">选择图片</label>' +
+                    '<input type="file" id="p0-avatar-file" accept="image/*" style="display:none">' +
+                    '<button type="button" class="p0-btn sm ghost" onclick="p0ClearAvatar()">移除</button>' +
+                '</div>' +
+            '</div>' +
+            '<div class="p0-avatar-tip" id="p0-avatar-tip">' + (avatar ? '已上传头像，保存后生效' : '还未设置头像，将显示昵称首字') + '</div>' +
+        '</div>' +
         '<div class="p0-field"><label>昵称 *</label><input id="p0-p-nickname" class="p0-input" maxlength="20" value="' + p0Esc(p.nickname || '') + '"></div>' +
         '<div class="p0-row2">' +
             '<div class="p0-field"><label>学院</label><input id="p0-p-college" class="p0-input" maxlength="30" value="' + p0Esc(p.college || '') + '" placeholder="如：计算机学院"></div>' +
@@ -1182,29 +1212,112 @@ function p0EditProfile() {
         '<div class="p0-field"><label>一句话介绍</label><input id="p0-p-bio" class="p0-input" maxlength="120" value="' + p0Esc(p.bio || '') + '" placeholder="如：会一点前端，正在准备互联网+"></div>' +
         '<div class="p0-modal-foot"><button class="p0-btn" onclick="p0CloseModal()">取消</button><button class="p0-btn primary" onclick="p0SubmitProfile()">保存</button></div>';
     p0Modal(p0ModalShell('编辑资料', body));
+    p0BindAvatarEditor();
+}
+
+// 头像上传：把图片压到合理尺寸后传到 file bucket，返回公开 URL
+async function p0UploadAvatar(file) {
+    if (!window.supabaseClient || !window.supabaseClient.storage) throw new Error('上传组件未就绪，请刷新重试');
+    var dataUrl = await new Promise(function (resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function () { resolve(reader.result); };
+        reader.onerror = function () { reject(new Error('读取图片失败')); };
+        reader.readAsDataURL(file);
+    });
+    // 用 canvas 压缩：最长边 320px，jpeg 0.82，避免大图占用空间
+    var img = await new Promise(function (resolve, reject) {
+        var im = new Image();
+        im.onload = function () { resolve(im); };
+        im.onerror = function () { reject(new Error('图片格式不支持')); };
+        im.src = dataUrl;
+    });
+    var maxSide = 320;
+    var w = img.width, h = img.height;
+    var scale = Math.min(1, maxSide / Math.max(w, h));
+    w = Math.max(1, Math.round(w * scale)); h = Math.max(1, Math.round(h * scale));
+    var canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    var blob = await new Promise(function (resolve) { canvas.toBlob(resolve, 'image/jpeg', 0.82); });
+    if (!blob) throw new Error('图片处理失败');
+    var uid = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : 'guest';
+    var fileName = 'avatar/' + uid + '/' + Date.now() + '.jpg';
+    var up = await window.supabaseClient.storage.from('file').upload(fileName, blob, { contentType: 'image/jpeg', upsert: true });
+    if (up.error) throw new Error(up.error.message || '上传失败');
+    var pub = window.supabaseClient.storage.from('file').getPublicUrl(fileName);
+    var url = pub && pub.data && pub.data.publicUrl;
+    if (!url) throw new Error('获取头像地址失败');
+    return url;
 }
 
 async function p0SubmitProfile() {
-    var nickname = document.getElementById('p0-p-nickname').value.trim();
+    var nicknameEl = document.getElementById('p0-p-nickname');
+    var nickname = nicknameEl ? nicknameEl.value.trim() : '';
     if (!nickname) { p0Toast('昵称不能为空', 'err'); return; }
+    var submitBtn = document.querySelector('#p0-modal .p0-btn.primary');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '保存中…'; }
     try {
-        await p0Fetch('/api/profile', {
-            method: 'POST',
-            body: {
-                action: 'save',
-                nickname: nickname,
-                college: document.getElementById('p0-p-college').value,
-                major: document.getElementById('p0-p-major').value,
-                grade: document.getElementById('p0-p-grade').value,
-                bio: document.getElementById('p0-p-bio').value
-            }
-        });
+        // 1) 若选择了新图片，先上传头像
+        var avatarUrl = null;
+        var fileInput = document.getElementById('p0-avatar-file');
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+            p0Toast('正在上传头像…', 'info');
+            avatarUrl = await p0UploadAvatar(fileInput.files[0]);
+        } else if (window.__p0AvatarRemoved) {
+            avatarUrl = ''; // 用户点了移除
+        }
+        // 2) 保存资料（头像地址一并提交；service_role 写入，不再 permission denied）
+        var payload = {
+            action: 'save',
+            nickname: nickname,
+            college: document.getElementById('p0-p-college').value,
+            major: document.getElementById('p0-p-major').value,
+            grade: document.getElementById('p0-p-grade').value,
+            bio: document.getElementById('p0-p-bio').value
+        };
+        if (avatarUrl !== null) payload.avatar_url = avatarUrl;
+        await p0Fetch('/api/profile', { method: 'POST', body: payload });
         p0Toast('资料已保存', 'ok');
+        window.__p0AvatarRemoved = false;
         p0CloseModal();
-        p0LoadMine(true);
+        // 3) 刷新"我的"页与顶部头像；停留在当前模块，不跳回首页
+        P0.loaded.mine = false;
+        await p0LoadMine(true);
+        if (typeof refreshMyProfile === 'function') refreshMyProfile();
     } catch (e) {
-        p0Toast(e.message || '保存失败', 'err');
+        // 保存失败：留在编辑弹窗内提示，不关闭、不跳首页
+        p0Toast(e.message || '保存失败，请重试', 'err');
+    } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '保存'; }
     }
+}
+
+// 头像选择预览 + 移除
+function p0BindAvatarEditor() {
+    var input = document.getElementById('p0-avatar-file');
+    var preview = document.getElementById('p0-avatar-preview');
+    var tip = document.getElementById('p0-avatar-tip');
+    if (!input) return;
+    window.__p0AvatarRemoved = false;
+    input.addEventListener('change', function () {
+        var f = input.files && input.files[0];
+        if (!f) return;
+        window.__p0AvatarRemoved = false;
+        if (preview) {
+            preview.src = URL.createObjectURL(f);
+            preview.style.display = 'block';
+        }
+        if (tip) tip.textContent = '已选择新头像，点保存后生效';
+    });
+}
+function p0ClearAvatar() {
+    var preview = document.getElementById('p0-avatar-preview');
+    var tip = document.getElementById('p0-avatar-tip');
+    var input = document.getElementById('p0-avatar-file');
+    if (preview) preview.style.display = 'none';
+    if (input) input.value = '';
+    if (tip) tip.textContent = '保存后将移除头像，改回昵称首字';
+    window.__p0AvatarRemoved = true;
 }
 
 function p0OpenVerify() {
