@@ -1182,15 +1182,27 @@ const FALLBACK_MODEL = 'openrouter/free';
             var isAndroid = /Android/i.test(navigator.userAgent || '');
             if (!isNative || !isAndroid) return;
 
-            var startX = 0, startY = 0, tracking = false;
+            var startX = 0, startY = 0, tracking = false, fromLeft = true;
+            var EDGE = 32;       // 从左右边缘 32px 内开始
+            var SWIPE = 50;      // 滑动超过 50px 就触发（"稍微滑一下"）
+
             document.addEventListener('touchstart', function (e) {
                 if (!e.touches || e.touches.length !== 1) return;
                 var main = document.getElementById('main-screen');
                 if (!main || main.style.display !== 'block') return;
                 if (document.querySelector('#p0-modal.show')) return;
                 if (document.querySelector('#doc-detail-modal[style*="flex"]')) return;
+                if (e.target && e.target.closest && e.target.closest('#ai-ball, #ai-chat-panel, .p0-bar')) return;
+
                 var t = e.touches[0];
-                if (t.clientX > 32) return;
+                var w = window.innerWidth || document.documentElement.clientWidth;
+                if (t.clientX <= EDGE) {
+                    fromLeft = true;
+                } else if (t.clientX >= w - EDGE) {
+                    fromLeft = false;
+                } else {
+                    return;
+                }
                 startX = t.clientX;
                 startY = t.clientY;
                 tracking = true;
@@ -1203,7 +1215,8 @@ const FALLBACK_MODEL = 'openrouter/free';
                 if (!t) return;
                 var dx = t.clientX - startX;
                 var dy = Math.abs(t.clientY - startY);
-                if (dx > 70 && dy < 70) {
+                var ok = fromLeft ? (dx > SWIPE) : (dx < -SWIPE);
+                if (ok && dy < 80) {
                     returnToStart();
                 }
             }, { passive: true });
