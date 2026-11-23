@@ -4,13 +4,17 @@
    - 静态资源：缓存优先，后台更新
    - API / 管理后台 / APK 下载：不缓存，直接走网络
 */
-const CACHE = 'haohai-shell-v1';
+const CACHE = 'haohai-shell-v2';
 
 const CORE = [
     '/',
     '/index.html',
     '/assets/p0.css',
     '/assets/p0.js',
+    '/assets/hh-plus.css',
+    '/assets/hh-plus.js',
+    '/assets/hh-mobile.css',
+    '/assets/hh-mobile.js',
     '/favicon.svg',
     '/icon-192.png',
     '/icon-512.png',
