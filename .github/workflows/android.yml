@@ -1,5 +1,6 @@
 name: Build Android APK
 
+# 手动触发：GitHub 仓库 → Actions → Build Android APK → Run workflow
 on:
   workflow_dispatch:
 
@@ -42,6 +43,9 @@ jobs:
 
       - name: Sync web assets
         run: npx cap sync android
+
+      - name: Generate app icon
+        run: npx capacitor-assets generate --android
 
       - name: Build debug APK
         run: |
