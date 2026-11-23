@@ -80,8 +80,9 @@
 
         /* ========== 主界面 ========== */
         #main-screen { display: none; opacity: 0; transition: opacity 0.8s ease; min-height: 100vh; background-image: url('二界面背景.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
-        .navbar { position: sticky; top: 0; z-index: 800; background: rgba(0, 64, 133, 0.75); backdrop-filter: blur(10px); color: white; padding: 15px 20px; display: flex; justify-content: center; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .nav-back { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.18); color: #fff; font-size: 18px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .navbar { position: sticky; top: 0; z-index: 800; background: rgba(0, 64, 133, 0.75); backdrop-filter: blur(10px); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .navbar-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .nav-back { position: static; transform: none; flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.18); color: #fff; font-size: 18px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .nav-back:hover { background: rgba(255,255,255,0.3); }
         .navbar h2 { margin: 0; font-size: 32px; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
         .navbar h2 .study-text { font-size: 32px; }
@@ -335,6 +336,10 @@
             /* --- 主界面 --- */
             .navbar { padding: 12px 14px; }
             .navbar h2, .navbar h2 .study-text { font-size: 22px; }
+            .navbar-left { gap: 6px; }
+            .nav-back { width: 30px; height: 30px; font-size: 16px; }
+            .auth-area .auth-email { display: none; }
+            .auth-area { margin-left: auto; }
             .container { padding: 12px; }
             .dashboard { padding: 12px; margin-bottom: 14px; }
             .data-item h3 { font-size: 20px; }
@@ -541,8 +546,10 @@
     <!-- ================= 主界面 ================= -->
     <div id="main-screen">
        <div class="navbar">
-           <button class="nav-back" type="button" onclick="returnToStart()" title="返回首页" aria-label="返回首页">←</button>
-           <h2 style="display:flex;align-items:center;gap:10px;"><img src="favicon.svg" alt="logo" style="width:30px;height:30px;">浩海<span class="study-text">study</span></h2>
+           <div class="navbar-left">
+               <button class="nav-back" type="button" onclick="returnToStart()" title="返回首页" aria-label="返回首页">←</button>
+               <h2 style="display:flex;align-items:center;gap:8px;"><img src="favicon.svg" alt="logo" style="width:28px;height:28px;">浩海<span class="study-text">study</span></h2>
+           </div>
            <div class="auth-area" id="auth-area"></div>
        </div>
         <div class="container">
@@ -1126,17 +1133,11 @@ const FALLBACK_MODEL = 'openrouter/free';
         } catch (_) {}
 
         // ---------- 1. 页面切换与搜索逻辑 ----------
-        window.onpopstate = function(event) {
-            let mainScreen = document.getElementById("main-screen");
-            if (mainScreen.style.display === "block") {
-                let cards = document.querySelectorAll('.module-card');
-                let hiddenCards = Array.from(cards).filter(c => c.style.display === 'none');
-                if (hiddenCards.length > 0) {
-                    cards.forEach(c => c.style.display = 'block');
-                    history.pushState({ page: 'main', view: 'all' }, '', '#main');
-                } else {
-                    goBackToStart();
-                }
+        // 从主界面按返回（系统返回键/浏览器后退）→ 回到搜索页
+        window.onpopstate = function () {
+            var mainScreen = document.getElementById("main-screen");
+            if (mainScreen && mainScreen.style.display === "block") {
+                goBackToStart();
             }
         };
 
@@ -1166,12 +1167,49 @@ const FALLBACK_MODEL = 'openrouter/free';
 
         // 返回首页：有 #main 历史记录就后退，没有就直接显示开始页
         function returnToStart() {
-            if (history.state && history.state.page === 'main') {
+            if (history.state && history.state.page === 'main' && history.length > 1) {
                 history.back();
             } else {
                 goBackToStart();
             }
         }
+
+        // 安卓 App 内：从屏幕左边缘向右滑 → 返回搜索页
+        // 只在 Capacitor 安卓原生环境启用，避免手机浏览器里和系统返回手势重复触发
+        (function () {
+            var cap = window.Capacitor;
+            var isNative = !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform());
+            var isAndroid = /Android/i.test(navigator.userAgent || '');
+            if (!isNative || !isAndroid) return;
+
+            var startX = 0, startY = 0, tracking = false;
+            document.addEventListener('touchstart', function (e) {
+                if (!e.touches || e.touches.length !== 1) return;
+                var main = document.getElementById('main-screen');
+                if (!main || main.style.display !== 'block') return;
+                if (document.querySelector('#p0-modal.show')) return;
+                if (document.querySelector('#doc-detail-modal[style*="flex"]')) return;
+                var t = e.touches[0];
+                if (t.clientX > 32) return;
+                startX = t.clientX;
+                startY = t.clientY;
+                tracking = true;
+            }, { passive: true });
+
+            document.addEventListener('touchend', function (e) {
+                if (!tracking) return;
+                tracking = false;
+                var t = e.changedTouches && e.changedTouches[0];
+                if (!t) return;
+                var dx = t.clientX - startX;
+                var dy = Math.abs(t.clientY - startY);
+                if (dx > 70 && dy < 70) {
+                    returnToStart();
+                }
+            }, { passive: true });
+
+            document.addEventListener('touchcancel', function () { tracking = false; }, { passive: true });
+        })();
 
         function goBackToStart() {
             let startScreen = document.getElementById("start-screen"), mainScreen = document.getElementById("main-screen");
