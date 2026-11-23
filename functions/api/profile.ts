@@ -182,9 +182,17 @@ export async function onRequest({ request, env }) {
                 grade: clip(body.grade, 10),
                 bio: clip(body.bio, 120)
             };
+            if (body.avatar_url !== undefined) patch.avatar_url = clip(body.avatar_url, 1000);
             if (!patch.nickname) return json({ error: '昵称不能为空' }, 400);
+
+            // 重要：profiles 表做了列级授权（revoke update/insert from authenticated），
+            // 用 anon key + 用户 token 做 upsert 会被 PostgreSQL 拒绝 → "permission denied for table profiles"。
+            // 因此写入统一走 service_role（与 verify 一致）；uid 来自服务端解析的 JWT，客户端无法冒用。
+            // 只有 nickname/college/major/grade/bio/avatar_url 会被写入，verified 等敏感字段不在此列。
+            const writeKey = SERVICE_ROLE || SUPABASE_KEY;
+            const writeToken = SERVICE_ROLE || token;
             const data = await writeRows(
-                SUPABASE_URL, SUPABASE_KEY, token,
+                SUPABASE_URL, writeKey, writeToken,
                 '/profiles?on_conflict=id', 'POST', patch,
                 'resolution=merge-duplicates,return=representation'
             );
