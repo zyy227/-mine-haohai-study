@@ -51,6 +51,8 @@ function isBypassed(url) {
     if (url.pathname.indexOf('/api/') === 0) return true;
     if (url.pathname === '/news') return true;
     if (url.pathname === '/sw.js') return true;
+    // 缓存自愈模块必须永远走网络，否则它自己被旧缓存卡住就失去自愈能力
+    if (url.pathname.indexOf('/assets/hh-cache.js') === 0) return true;
     if (url.pathname === '/admin.html') return true;
     if (url.pathname.indexOf('/download/') === 0) return true;
     return false;
