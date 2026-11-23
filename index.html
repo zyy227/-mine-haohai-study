@@ -39,8 +39,30 @@
         }
         .download-fab:hover { background: #fff; transform: translateY(-1px); }
         .native-app .download-fab { display: none !important; }
+        /* 首次访问的安装引导条 */
+        .install-guide {
+            display: none; position: fixed; left: 12px; right: 12px; bottom: 12px;
+            z-index: 9600; align-items: center; gap: 10px;
+            background: rgba(255,255,255,0.98); border: 1px solid #dbe7fb;
+            border-radius: 16px; padding: 12px 14px;
+            box-shadow: 0 14px 44px rgba(20,45,90,0.22);
+        }
+        .install-guide.show { display: flex; }
+        .install-guide .ig-main { flex: 1; min-width: 0; }
+        .install-guide .ig-title { font-size: 14px; font-weight: 800; color: #004085; }
+        .install-guide .ig-sub { font-size: 12px; color: #7b8ca1; margin-top: 2px; }
+        .install-guide .ig-go {
+            flex-shrink: 0; background: #2f6fed; color: #fff; text-decoration: none;
+            font-size: 13px; font-weight: 800; padding: 9px 14px; border-radius: 999px;
+        }
+        .install-guide .ig-x {
+            flex-shrink: 0; width: 28px; height: 28px; border: none; border-radius: 50%;
+            background: #f0f4fb; color: #7b8ca1; font-size: 18px; line-height: 1; cursor: pointer;
+        }
+        .native-app .install-guide { display: none !important; }
         @media (max-width: 768px) {
             .download-fab { left: 12px; bottom: 14px; padding: 9px 12px; font-size: 12px; }
+            .install-guide { left: 10px; right: 10px; bottom: 12px; padding: 10px 12px; }
         }
         /* ========== 开始界面 ========== */
         #start-screen {
@@ -438,6 +460,16 @@
 
     <!-- 下载手机版入口（安装到主屏幕/APK 后自动隐藏） -->
     <a class="download-fab" href="/download/" title="下载手机版">📱 下载手机版</a>
+
+    <!-- 首次访问引导条 -->
+    <div class="install-guide" id="install-guide">
+        <div class="ig-main">
+            <div class="ig-title">📱 把浩海study装到手机</div>
+            <div class="ig-sub">安卓下载 APK，iPhone 添加到主屏幕</div>
+        </div>
+        <a class="ig-go" href="/download/" onclick="try{localStorage.setItem('hh_install_dismissed','1')}catch(_){}">去安装</a>
+        <button class="ig-x" type="button" onclick="dismissInstallGuide()" aria-label="关闭">×</button>
+    </div>
 
     <!-- ================= 弹窗区 ================= -->
     <div id="doc-detail-modal">
@@ -2599,6 +2631,16 @@ const FALLBACK_MODEL = 'openrouter/free';
             var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
                 || window.navigator.standalone === true;
             if (native || standalone) document.body.classList.add('native-app');
+
+            var mobile = /Android|iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            var dismissed = false;
+            try { dismissed = localStorage.getItem('hh_install_dismissed') === '1'; } catch (_) {}
+            if (mobile && !native && !standalone && !dismissed) {
+                setTimeout(function () {
+                    var el = document.getElementById('install-guide');
+                    if (el) el.classList.add('show');
+                }, 2500);
+            }
         } catch (_) {}
 
         if ('serviceWorker' in navigator && location.protocol === 'https:') {
@@ -2607,6 +2649,12 @@ const FALLBACK_MODEL = 'openrouter/free';
             });
         }
     })();
+
+    window.dismissInstallGuide = function () {
+        var el = document.getElementById('install-guide');
+        if (el) el.classList.remove('show');
+        try { localStorage.setItem('hh_install_dismissed', '1'); } catch (_) {}
+    };
 </script>
 </body>
 </html>
