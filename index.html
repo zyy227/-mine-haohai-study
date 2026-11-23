@@ -65,6 +65,13 @@
         @media (max-width: 768px) {
             .download-fab { left: 12px; bottom: 14px; padding: 9px 12px; font-size: 12px; }
             .install-guide { left: 10px; right: 10px; bottom: 12px; padding: 10px 12px; }
+            /* 有底部 Tab 时，把下载入口和引导条抬到 Tab 上方，避免遮挡 */
+            body.hh-mobile-shell .download-fab {
+                bottom: calc(var(--hh-tab-h, 58px) + env(safe-area-inset-bottom, 0px) + 14px);
+            }
+            body.hh-mobile-shell .install-guide {
+                bottom: calc(var(--hh-tab-h, 58px) + env(safe-area-inset-bottom, 0px) + 12px);
+            }
         }
         /* ========== 开始界面 ========== */
         #start-screen {
@@ -506,6 +513,10 @@
             <div class="auth-field">
                 <label for="auth-email">邮箱</label>
                 <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email">
+            </div>
+            <div class="auth-field" id="auth-username-field" style="display:none;">
+                <label for="auth-username">用户名</label>
+                <input type="text" id="auth-username" maxlength="16" placeholder="2-16位，中文/字母/数字" autocomplete="username">
             </div>
             <div class="auth-field">
                 <label for="auth-password">密码</label>
@@ -960,7 +971,9 @@ const FALLBACK_MODEL = 'openrouter/free';
             return '<span class="' + cls + '">' + escapeHtml(avatarInitial(user)) + '</span>';
         }
         function avatarInitial(user) {
-            const name = (user && (user.nickname || user.email)) || 'U';
+            const name = (typeof displayUserName === 'function')
+                ? displayUserName(user)
+                : ((user && (user.nickname || user.email)) || 'U');
             const first = String(name).replace(/^[@\s]+/, '').charAt(0);
             return /[a-zA-Z]/.test(first) ? first.toUpperCase() : (first || 'U');
         }
@@ -1017,9 +1030,11 @@ const FALLBACK_MODEL = 'openrouter/free';
             if (tr) tr.classList.toggle('active', tab === 'register');
             const confirmField = document.getElementById('auth-confirm-field');
             if (confirmField) confirmField.style.display = (tab === 'register') ? 'block' : 'none';
+            const usernameField = document.getElementById('auth-username-field');
+            if (usernameField) usernameField.style.display = (tab === 'register') ? 'block' : 'none';
             const hint = document.getElementById('auth-hint');
             if (hint) hint.textContent = (tab === 'register')
-                ? '密码至少 6 位，且同时包含字母和数字；注册需填写邮箱并二次确认密码。'
+                ? '用户名 2-16 位；密码至少 6 位，且同时包含字母和数字；注册需二次确认密码。'
                 : '密码需至少 6 位，且同时包含字母和数字。';
             const submit = document.getElementById('auth-submit');
             if (submit) submit.textContent = (tab === 'register') ? '注册并登录' : '登录';
@@ -1035,6 +1050,11 @@ const FALLBACK_MODEL = 'openrouter/free';
         // 校验密码规则：字母 + 数字，至少 6 位
         function validPassword(pw) {
             return typeof pw === 'string' && pw.length >= 6 && /[A-Za-z]/.test(pw) && /\d/.test(pw);
+        }
+
+        // 用户名规则与后端 /api/auth/register 保持一致
+        function validUsername(name) {
+            return typeof name === 'string' && /^[\u4e00-\u9fa5A-Za-z0-9_-]{2,16}$/.test(name);
         }
 
         // 把 Supabase 的错误信息翻译成中文
@@ -1057,10 +1077,12 @@ const FALLBACK_MODEL = 'openrouter/free';
             const email = (document.getElementById('auth-email').value || '').trim();
             const password = document.getElementById('auth-password').value || '';
             const confirm = (document.getElementById('auth-confirm').value || '');
+            const username = (document.getElementById('auth-username').value || '').trim();
             const submitBtn = document.getElementById('auth-submit');
 
             if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setAuthMsg('请输入正确的邮箱地址。', 'err'); return; }
             if (!validPassword(password)) { setAuthMsg('密码需至少 6 位，且同时包含字母和数字。', 'err'); return; }
+            if (authTab === 'register' && !validUsername(username)) { setAuthMsg('用户名需 2-16 个字，支持中文、字母、数字、下划线和短横线。', 'err'); return; }
             if (authTab === 'register' && password !== confirm) { setAuthMsg('两次输入的密码不一致，请重新输入。', 'err'); return; }
 
             if (!supabaseClient || !supabaseClient.auth) {
@@ -1076,7 +1098,7 @@ const FALLBACK_MODEL = 'openrouter/free';
                     const regRes = await withTimeout(fetch('/api/auth/register', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: email, password: password })
+                        body: JSON.stringify({ email: email, password: password, username: username })
                     }), 20000, '注册');
                     let regData = null;
                     try { regData = await regRes.json(); } catch (_) { regData = null; }
@@ -1136,7 +1158,8 @@ const FALLBACK_MODEL = 'openrouter/free';
                         id: uid,
                         email: session.user.email || '',
                         nickname: cached.nickname || '',
-                        avatar_url: cached.avatar_url || ''
+                        avatar_url: cached.avatar_url || '',
+                        user_metadata: session.user.user_metadata || {}
                     };
                     currentToken = session.access_token || '';
                 } else {
@@ -1155,7 +1178,9 @@ const FALLBACK_MODEL = 'openrouter/free';
             const start = document.getElementById('start-auth');
             let navHtml, startHtml;
             if (currentUser) {
-                const short = currentUser.nickname || (currentUser.email ? currentUser.email.split('@')[0] : '已登录');
+                const short = (typeof displayUserName === 'function')
+                    ? displayUserName(currentUser)
+                    : (currentUser.nickname || (currentUser.email ? currentUser.email.split('@')[0] : '已登录'));
                 const adminBtn = isAdmin()
                     ? '<a class="auth-btn admin-entry" href="admin.html">⚙️ 管理后台</a>'
                     : '';
