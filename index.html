@@ -1174,17 +1174,17 @@ const FALLBACK_MODEL = 'openrouter/free';
             }
         }
 
-        // 安卓 App 内：从屏幕左边缘向右滑 → 返回搜索页
-        // 只在 Capacitor 安卓原生环境启用，避免手机浏览器里和系统返回手势重复触发
+        // 安卓 App 内：从屏幕左/右边缘向内滑 → 返回搜索页
+        // 只在安卓 WebView/App 里启用，避免手机浏览器和系统返回手势重复触发
         (function () {
-            var cap = window.Capacitor;
-            var isNative = !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform());
-            var isAndroid = /Android/i.test(navigator.userAgent || '');
-            if (!isNative || !isAndroid) return;
+            var ua = navigator.userAgent || '';
+            var isAndroid = /Android/i.test(ua);
+            var isWebView = /;\s*wv\)/i.test(ua) || !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+            if (!isAndroid || !isWebView) return;
 
             var startX = 0, startY = 0, tracking = false, fromLeft = true;
-            var EDGE = 32;       // 从左右边缘 32px 内开始
-            var SWIPE = 50;      // 滑动超过 50px 就触发（"稍微滑一下"）
+            var EDGE = 32;
+            var SWIPE = 50;
 
             document.addEventListener('touchstart', function (e) {
                 if (!e.touches || e.touches.length !== 1) return;
@@ -1222,6 +1222,33 @@ const FALLBACK_MODEL = 'openrouter/free';
             }, { passive: true });
 
             document.addEventListener('touchcancel', function () { tracking = false; }, { passive: true });
+        })();
+
+        // 安卓系统返回键：Capacitor App 插件监听，回到搜索页而不是退出 App
+        (function () {
+            function setup() {
+                var cap = window.Capacitor;
+                if (!cap || !cap.Plugins || !cap.Plugins.App || !cap.Plugins.App.addListener) return false;
+                cap.Plugins.App.addListener('backButton', function (info) {
+                    var main = document.getElementById('main-screen');
+                    if (main && main.style.display === 'block') {
+                        returnToStart();
+                        return;
+                    }
+                    if (info && info.canGoBack) {
+                        history.back();
+                        return;
+                    }
+                    try { cap.Plugins.App.exitApp(); } catch (_) {}
+                });
+                return true;
+            }
+            if (!setup()) {
+                var tries = 0;
+                var timer = setInterval(function () {
+                    if (setup() || ++tries > 20) clearInterval(timer);
+                }, 250);
+            }
         })();
 
         function goBackToStart() {
