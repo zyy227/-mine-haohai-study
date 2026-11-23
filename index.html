@@ -12,9 +12,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="浩海study">
     <link rel="apple-touch-icon" href="icon-192.png">
-    <link rel="stylesheet" href="assets/p0.css?v=20261122b">
-    <link rel="stylesheet" href="assets/hh-plus.css?v=20261123a">
-    <link rel="stylesheet" href="assets/hh-mobile.css?v=20261123a">
+    <link rel="stylesheet" href="assets/p0.css?v=20261123b">
+    <link rel="stylesheet" href="assets/hh-plus.css?v=20261123b">
+    <link rel="stylesheet" href="assets/hh-mobile.css?v=20261123b">
     <title>浩海 study · 校园课程与组队</title>
     <style>
         /* ========== 全局与基础样式 ========== */
@@ -162,6 +162,8 @@
         .auth-btn.primary:hover { background: #ffe08a; }
         .auth-user { display: flex; align-items: center; gap: 8px; color: #fff; font-size: 13px; }
         .auth-avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg,#7f77dd,#534ab7); display: inline-flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; }
+        .auth-avatar.avatar-img { display: inline-block; object-fit: cover; padding: 0; overflow: hidden; vertical-align: middle; border: 2px solid rgba(255,255,255,.7); }
+        .auth-avatar.avatar-fallback { object-fit: cover; }
         .auth-email { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .guest-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.2); color: #fff; border-radius: 14px; padding: 5px 12px; font-size: 12px; }
 
@@ -910,6 +912,7 @@ const FALLBACK_MODEL = 'openrouter/free';
                     })
                 }
             };
+        window.supabaseClient = supabaseClient; // 供 P0 头像上传等模块复用同一实例
 
         // ==========================================================
         // 🔐 用户认证与权限（注册 / 登录 / 游客 / 归属隔离）
@@ -917,8 +920,50 @@ const FALLBACK_MODEL = 'openrouter/free';
         //   · currentUser 为 null 表示游客；否则 { id, email }
         //   · 权限判断统一走 canEdit(item)：只有登录且是发布者本人才能编辑/删除
         // ==========================================================
-        let currentUser = null;   // { id, email } 或 null（游客）
+        let currentUser = null;   // { id, email, nickname, avatar_url } 或 null（游客）
         let currentToken = '';    // 当前登录用户的 access_token，用于带给 /api/items 让 RLS 识别身份
+
+        // 用户资料本地缓存：头像/昵称按 uid 存，减少请求；key 带 uid 避免串号
+        function userProfileKey(uid) { return 'hh_user_profile_' + uid; }
+        function cacheUserProfile(uid, profile) {
+            if (!uid || !profile) return;
+            try { localStorage.setItem(userProfileKey(uid), JSON.stringify(profile)); } catch (_) {}
+        }
+        function getCachedUserProfile(uid) {
+            if (!uid) return null;
+            try { return JSON.parse(localStorage.getItem(userProfileKey(uid)) || 'null'); } catch (_) { return null; }
+        }
+        // 拉取当前用户资料（头像/昵称），失败不影响主流程
+        async function refreshMyProfile() {
+            if (!currentUser || !currentToken) return;
+            try {
+                const res = await fetch('/api/profile?action=me', { headers: await authHeaders() });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data && data.profile) {
+                    const p = data.profile;
+                    currentUser.nickname = p.nickname || currentUser.nickname || '';
+                    currentUser.avatar_url = p.avatar_url || '';
+                    cacheUserProfile(currentUser.id, { nickname: currentUser.nickname, avatar_url: currentUser.avatar_url });
+                    renderAuthUI();
+                }
+            } catch (_) {}
+        }
+        // 生成头像 HTML：有头像显示图片，否则显示首字（优先昵称，回退邮箱前缀）
+        function avatarHtml(user, sizeClass) {
+            const cls = 'auth-avatar' + (sizeClass ? ' ' + sizeClass : '');
+            if (user && user.avatar_url) {
+                return '<img class="' + cls + ' avatar-img" src="' + escapeHtml(safeUrl(user.avatar_url)) +
+                    '" alt="头像" onerror="this.style.display=\'none\';this.nextElementSibling&&(this.nextElementSibling.style.display=\'inline-flex\')">' +
+                    '<span class="' + cls + ' avatar-fallback" style="display:none">' + escapeHtml(avatarInitial(user)) + '</span>';
+            }
+            return '<span class="' + cls + '">' + escapeHtml(avatarInitial(user)) + '</span>';
+        }
+        function avatarInitial(user) {
+            const name = (user && (user.nickname || user.email)) || 'U';
+            const first = String(name).replace(/^[@\s]+/, '').charAt(0);
+            return /[a-zA-Z]/.test(first) ? first.toUpperCase() : (first || 'U');
+        }
 
         // 安全取 token：SDK 没加载时返回空串（视为游客）
         async function getAccessToken() {
@@ -1085,7 +1130,14 @@ const FALLBACK_MODEL = 'openrouter/free';
                 const { data } = await supabaseClient.auth.getSession();
                 const session = data && data.session;
                 if (session && session.user) {
-                    currentUser = { id: session.user.id, email: session.user.email || '' };
+                    var uid = session.user.id;
+                    var cached = getCachedUserProfile(uid) || {};
+                    currentUser = {
+                        id: uid,
+                        email: session.user.email || '',
+                        nickname: cached.nickname || '',
+                        avatar_url: cached.avatar_url || ''
+                    };
                     currentToken = session.access_token || '';
                 } else {
                     currentUser = null; currentToken = '';
@@ -1094,6 +1146,7 @@ const FALLBACK_MODEL = 'openrouter/free';
             renderAuthUI();
             renderAll();
             if (typeof p0OnAuthChange === 'function') p0OnAuthChange();
+            refreshMyProfile(); // 异步刷新头像/昵称，失败静默
         }
 
         // 渲染导航栏 / 开始界面的用户状态
@@ -1102,17 +1155,16 @@ const FALLBACK_MODEL = 'openrouter/free';
             const start = document.getElementById('start-auth');
             let navHtml, startHtml;
             if (currentUser) {
-                const initial = (currentUser.email || 'U').charAt(0).toUpperCase();
-                const short = currentUser.email || '已登录';
+                const short = currentUser.nickname || (currentUser.email ? currentUser.email.split('@')[0] : '已登录');
                 const adminBtn = isAdmin()
                     ? '<a class="auth-btn admin-entry" href="admin.html">⚙️ 管理后台</a>'
                     : '';
                 navHtml = '<div class="auth-user">' + adminBtn +
-                          '<span class="auth-avatar">' + escapeHtml(initial) + '</span>' +
+                          avatarHtml(currentUser) +
                           '<span class="auth-email" title="' + escapeHtml(short) + '">' + escapeHtml(short) + '</span>' +
                           '<button class="auth-btn" onclick="logout()">退出</button></div>';
                 startHtml = '<div class="auth-user">' + adminBtn +
-                            '<span class="auth-avatar">' + escapeHtml(initial) + '</span>' +
+                            avatarHtml(currentUser) +
                             '<span>' + escapeHtml(short) + '</span>' +
                             '<button class="auth-btn" onclick="logout()">退出</button></div>';
             } else {
@@ -1172,8 +1224,15 @@ const FALLBACK_MODEL = 'openrouter/free';
             if (supabaseClient && supabaseClient.auth && supabaseClient.auth.onAuthStateChange) {
                 supabaseClient.auth.onAuthStateChange(function (_event, session) {
                     if (session && session.user) {
-                        currentUser = { id: session.user.id, email: session.user.email || '' };
+                        var cached = getCachedUserProfile(session.user.id) || {};
+                        currentUser = {
+                            id: session.user.id,
+                            email: session.user.email || '',
+                            nickname: cached.nickname || '',
+                            avatar_url: cached.avatar_url || ''
+                        };
                         currentToken = session.access_token || '';
+                        if (_event === 'SIGNED_IN') refreshMyProfile();
                     } else {
                         currentUser = null; currentToken = '';
                     }
@@ -2622,9 +2681,9 @@ const FALLBACK_MODEL = 'openrouter/free';
             </div>
         </div>
     </div>
-<script src="assets/p0.js?v=20261122b"></script>
-<script src="assets/hh-plus.js?v=20261123a"></script>
-<script src="assets/hh-mobile.js?v=20261123a"></script>
+<script src="assets/p0.js?v=20261123b"></script>
+<script src="assets/hh-plus.js?v=20261123b"></script>
+<script src="assets/hh-mobile.js?v=20261123b"></script>
 <script>
     // PWA：注册 Service Worker（只在 https 下），并在已安装/APK 内隐藏“下载手机版”入口
     (function () {
