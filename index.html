@@ -81,6 +81,8 @@
         /* ========== 主界面 ========== */
         #main-screen { display: none; opacity: 0; transition: opacity 0.8s ease; min-height: 100vh; background-image: url('二界面背景.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
         .navbar { position: sticky; top: 0; z-index: 800; background: rgba(0, 64, 133, 0.75); backdrop-filter: blur(10px); color: white; padding: 15px 20px; display: flex; justify-content: center; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .nav-back { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.18); color: #fff; font-size: 18px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .nav-back:hover { background: rgba(255,255,255,0.3); }
         .navbar h2 { margin: 0; font-size: 32px; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
         .navbar h2 .study-text { font-size: 32px; }
 
@@ -539,6 +541,7 @@
     <!-- ================= 主界面 ================= -->
     <div id="main-screen">
        <div class="navbar">
+           <button class="nav-back" type="button" onclick="returnToStart()" title="返回首页" aria-label="返回首页">←</button>
            <h2 style="display:flex;align-items:center;gap:10px;"><img src="favicon.svg" alt="logo" style="width:30px;height:30px;">浩海<span class="study-text">study</span></h2>
            <div class="auth-area" id="auth-area"></div>
        </div>
@@ -1130,7 +1133,7 @@ const FALLBACK_MODEL = 'openrouter/free';
                 let hiddenCards = Array.from(cards).filter(c => c.style.display === 'none');
                 if (hiddenCards.length > 0) {
                     cards.forEach(c => c.style.display = 'block');
-                    history.pushState({ page: 'main', view: 'all' }, '', '');
+                    history.pushState({ page: 'main', view: 'all' }, '', '#main');
                 } else {
                     goBackToStart();
                 }
@@ -1140,7 +1143,14 @@ const FALLBACK_MODEL = 'openrouter/free';
         function enterMain(targetCardId = 'all') {
             trackMetric('visit');   // 统计：一次网站访问（每次进入主界面记一笔）
             let startScreen = document.getElementById("start-screen"), mainScreen = document.getElementById("main-screen");
-            history.pushState({ page: 'main', view: targetCardId }, '', '');
+            // 用 #main 生成真实的历史记录，安卓返回键才能回到开始页，而不是直接退出应用
+            try {
+                if (history.state && history.state.page === 'main') {
+                    history.replaceState({ page: 'main', view: targetCardId }, '', '#main');
+                } else {
+                    history.pushState({ page: 'main', view: targetCardId }, '', '#main');
+                }
+            } catch (_) {}
             let cards = document.querySelectorAll('.module-card');
             if (targetCardId === 'all') {
                 cards.forEach(c => c.style.display = 'block');
@@ -1154,8 +1164,18 @@ const FALLBACK_MODEL = 'openrouter/free';
             }, 800); 
         }
 
+        // 返回首页：有 #main 历史记录就后退，没有就直接显示开始页
+        function returnToStart() {
+            if (history.state && history.state.page === 'main') {
+                history.back();
+            } else {
+                goBackToStart();
+            }
+        }
+
         function goBackToStart() {
             let startScreen = document.getElementById("start-screen"), mainScreen = document.getElementById("main-screen");
+            try { history.replaceState({ page: 'start' }, '', location.pathname + location.search); } catch (_) {}
             mainScreen.style.opacity = "0";
             setTimeout(() => { 
                 mainScreen.style.display = "none"; startScreen.style.display = "flex"; 
