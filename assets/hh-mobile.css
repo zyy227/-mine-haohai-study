@@ -1,0 +1,101 @@
+/* 浩海 study 移动端外壳（可配置扩展，只新增样式，不改动原文件）
+   目标：让 WebView / PWA 更像原生 App —— 底部 Tab、安全区、触摸尺寸、手机显示用户名
+   开关：JS 会给 body 加 .hh-mobile-shell（enabled）和 .hh-show-name（showUsernameOnMobile）
+   仅在 <=768px 生效，桌面端完全不受影响
+*/
+
+:root {
+  --hh-tab-h: 58px;
+}
+
+/* 默认隐藏；只有移动端 + JS 启用后才显示 */
+#hh-bottom-tabs {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* 底部固定 Tab 栏 */
+  body.hh-mobile-shell #hh-bottom-tabs {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9000;
+    height: calc(var(--hh-tab-h) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.96);
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 -4px 18px rgba(20, 45, 90, 0.08);
+  }
+
+  .hh-tab {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: var(--hh-tab-h);
+    border: none;
+    background: transparent;
+    color: #6b7c93;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: color 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .hh-tab-ico {
+    font-size: 20px;
+    line-height: 1;
+    filter: grayscale(0.5);
+    opacity: 0.75;
+    transition: filter 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+  }
+  .hh-tab-label {
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .hh-tab.active { color: #2f6fed; }
+  .hh-tab.active .hh-tab-ico {
+    filter: none;
+    opacity: 1;
+    transform: translateY(-1px);
+  }
+
+  /* 给正文留出底部 Tab 的高度，避免最后一行内容被遮挡 */
+  body.hh-mobile-shell #start-screen,
+  body.hh-mobile-shell #main-screen {
+    padding-bottom: calc(var(--hh-tab-h) + env(safe-area-inset-bottom, 0px) + 16px);
+    box-sizing: border-box;
+  }
+
+  /* 刘海屏 / 状态栏安全区：顶部留白，动态视口高度 */
+  body.hh-mobile-shell #start-screen,
+  body.hh-mobile-shell #main-screen {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  body.hh-mobile-shell .navbar {
+    padding-top: calc(12px + env(safe-area-inset-top, 0px));
+  }
+
+  /* AI 悬浮球上移，避免压住底部 Tab */
+  body.hh-mobile-shell #ai-ball {
+    bottom: calc(var(--hh-tab-h) + env(safe-area-inset-bottom, 0px) + 16px);
+  }
+
+  /* 手机端恢复显示注册用户名（原样式把它隐藏了）*/
+  body.hh-mobile-shell.hh-show-name .auth-area .auth-email {
+    display: inline-block;
+    max-width: 104px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
