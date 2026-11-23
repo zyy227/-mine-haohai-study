@@ -7,6 +7,27 @@
 (function () {
   'use strict';
 
+  // 统一显示名：p0.js 会调用这两个函数。
+  // 优先用注册时写入的 user_metadata.username，其次用 profile.nickname，最后回退邮箱前缀。
+  function hhEmailPrefix(email) {
+    var value = String(email == null ? '' : email).trim();
+    return value ? value.split('@')[0] : '';
+  }
+
+  function displayUserName(user) {
+    if (!user) return '同学';
+    var meta = user.user_metadata || user.userMetadata || {};
+    var name = meta.username || user.nickname || hhEmailPrefix(user.email);
+    return String(name == null ? '' : name).trim() || '同学';
+  }
+
+  function hhDisplayNameForUser(uid, email, fallback) {
+    return hhEmailPrefix(email) || String(fallback == null ? '' : fallback).trim();
+  }
+
+  window.displayUserName = displayUserName;
+  window.hhDisplayNameForUser = hhDisplayNameForUser;
+
   function ready(fn) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
     else fn();
