@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#004085">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="浩海study">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <title>下载手机版 · 浩海 study</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; min-height: 100vh; color: #17365f;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(160deg, #dce9ff 0%, #eef5ff 45%, #f7f9ff 100%);
+        }
+        a { color: inherit; }
+        .wrap { max-width: 760px; margin: 0 auto; padding: 26px 16px 60px; }
+        .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+        .brand { display: flex; align-items: center; gap: 9px; font-size: 20px; font-weight: 800; color: #004085; }
+        .brand img { width: 32px; height: 32px; }
+        .brand .study { font-family: Helvetica, Arial, sans-serif; font-style: italic; font-weight: 800; }
+        .back { font-size: 13px; color: #2f6fed; text-decoration: none; background: #fff; border: 1px solid #d7e4ff; padding: 8px 14px; border-radius: 999px; }
+        h1 { font-size: 30px; line-height: 1.25; margin: 0 0 10px; color: #0d2d55; }
+        .lead { margin: 0 0 24px; color: #5b6f89; font-size: 15px; line-height: 1.8; }
+        .card {
+            background: rgba(255,255,255,.96); border: 1px solid #e0eaf9; border-radius: 20px;
+            padding: 22px; box-shadow: 0 14px 40px rgba(20, 60, 120, .1); margin-bottom: 16px;
+        }
+        .card.highlight { border-color: #9dc0ff; box-shadow: 0 16px 46px rgba(47,111,237,.16); }
+        .card h2 { margin: 0 0 6px; font-size: 19px; display: flex; align-items: center; gap: 8px; }
+        .card .sub { color: #8091a8; font-size: 13px; margin-bottom: 16px; line-height: 1.7; }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; min-height: 50px; border: none; border-radius: 14px;
+            background: linear-gradient(135deg, #2f6fed, #1d5bd4); color: #fff;
+            font-size: 16px; font-weight: 800; text-decoration: none; cursor: pointer;
+            box-shadow: 0 8px 20px rgba(47,111,237,.28);
+        }
+        .btn.ghost { background: #fff; color: #2f6fed; border: 1px solid #c9daf7; box-shadow: none; }
+        .btn:active { transform: translateY(1px); }
+        .meta { margin-top: 10px; color: #8b9bb1; font-size: 12px; text-align: center; }
+        .steps { margin: 14px 0 0; padding: 0; list-style: none; counter-reset: step; }
+        .steps li { position: relative; padding-left: 34px; margin-bottom: 10px; color: #43566e; font-size: 14px; line-height: 1.7; counter-increment: step; }
+        .steps li::before {
+            content: counter(step); position: absolute; left: 0; top: 1px;
+            width: 22px; height: 22px; border-radius: 50%; background: #e8f0ff;
+            color: #2f6fed; font-size: 12px; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .note { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: #fff8e6; color: #8a6416; font-size: 12.5px; line-height: 1.7; }
+        .note.blue { background: #eef4ff; color: #2c5282; }
+        .pwa-btn { margin-top: 12px; }
+        .footer { text-align: center; color: #93a3b8; font-size: 12px; margin-top: 26px; line-height: 1.8; }
+        .device-tag { display: inline-block; font-size: 11px; font-weight: 700; color: #2f6fed; background: #eef4ff; border-radius: 999px; padding: 3px 9px; margin-left: 6px; vertical-align: middle; }
+        @media (max-width: 520px) {
+            h1 { font-size: 24px; }
+            .card { padding: 18px; }
+            .wrap { padding-top: 18px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="top">
+            <div class="brand"><img src="/favicon.svg" alt="logo"><span>浩海<span class="study">study</span></span></div>
+            <a class="back" href="/">← 返回网站</a>
+        </div>
+
+        <h1>把浩海 study 装到手机里</h1>
+        <p class="lead">安卓可以直接下载安装包；iPhone 用 Safari 添加到主屏幕，不用安装包，打开就是全屏 App 体验。</p>
+
+        <div class="card" id="android-card">
+            <h2>🤖 安卓版 <span class="device-tag">推荐</span></h2>
+            <div class="sub">下载 APK 安装包，约 3.9MB。安装时如果提示“未知来源”，允许一次即可。</div>
+            <a class="btn" href="/download/haohai.apk" download>⬇️ 下载安卓 APK</a>
+            <div class="meta">版本 v1.0 · 需要 Android 7.0 以上</div>
+            <ol class="steps">
+                <li>点上面的按钮下载 APK</li>
+                <li>下载完成后点开文件，允许“安装未知应用”</li>
+                <li>桌面出现“浩海study”，打开即可</li>
+            </ol>
+            <div class="note">如果提示“应用未安装”，先在设置里卸载旧版“浩海study”，再装这个新版。</div>
+            <button class="btn ghost pwa-btn" id="pwa-install" style="display:none">📲 或添加到主屏幕</button>
+        </div>
+
+        <div class="card" id="ios-card">
+            <h2>🍎 iPhone / iPad</h2>
+            <div class="sub">iPhone 不能安装 APK。用 Safari 打开网站，添加到主屏幕后，图标和 App 一样，点开全屏运行。</div>
+            <ol class="steps">
+                <li>用 <b>Safari</b> 打开 <b>mine-haohai-study.pages.dev</b></li>
+                <li>点底部中间的“分享”按钮 <b>⬆️</b></li>
+                <li>往下滑，点“<b>添加到主屏幕</b>”</li>
+                <li>右上角点“添加”，桌面就会出现“浩海study”</li>
+            </ol>
+            <div class="note blue">注意：必须用 Safari，微信/QQ 内置浏览器不支持“添加到主屏幕”。</div>
+        </div>
+
+        <div class="card">
+            <h2>💻 电脑 / 其他设备</h2>
+            <div class="sub">直接把当前网址发到手机，或者用手机浏览器打开后按上面的步骤安装。</div>
+            <div class="note">网址：<b>https://mine-haohai-study.pages.dev</b></div>
+        </div>
+
+        <div class="footer">
+            浩海 study · 校园课程与组队<br>
+            安装遇到问题？在网站「我的」里联系管理员。
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            var ua = navigator.userAgent || '';
+            var isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            var isAndroid = /Android/i.test(ua);
+            if (isIOS) document.getElementById('ios-card').classList.add('highlight');
+            if (isAndroid) document.getElementById('android-card').classList.add('highlight');
+
+            // 安卓 Chrome 的 PWA 安装提示（APK 之外的备选）
+            var deferred = null;
+            var pwaBtn = document.getElementById('pwa-install');
+            window.addEventListener('beforeinstallprompt', function (e) {
+                e.preventDefault();
+                deferred = e;
+                if (pwaBtn) pwaBtn.style.display = 'inline-flex';
+            });
+            if (pwaBtn) {
+                pwaBtn.addEventListener('click', function () {
+                    if (!deferred) return;
+                    deferred.prompt();
+                    deferred.userChoice.then(function () { deferred = null; pwaBtn.style.display = 'none'; });
+                });
+            }
+
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function () {
+                    navigator.serviceWorker.register('/sw.js').catch(function () {});
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
