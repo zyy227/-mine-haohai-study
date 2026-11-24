@@ -18,12 +18,12 @@
     <link rel="stylesheet" href="assets/hh-plus.css?v=20261123b">
     <link rel="stylesheet" href="assets/hh-mobile.css?v=20261123b">
     <link rel="stylesheet" href="assets/hh-polish.css?v=20261124c">
-    <link rel="stylesheet" href="assets/stellar.css?v=20261124b">
+    <link rel="stylesheet" href="assets/stellar.css?v=20261124c">
     <title>浩海 study · 校园课程与组队</title>
     <style>
         /* 星空页关键兜底：即使 stellar.css 因缓存/网络没加载，也不会把
            logo 和文字按默认布局铺满整个页面。 */
-        #stellar-overlay { display: none; position: fixed; inset: 0; z-index: 9500; background: #05070f; color: #fff; overflow: hidden; }
+        #stellar-overlay { display: none; position: fixed; inset: 0; z-index: 9500; background: #080604; color: #fff; overflow: hidden; }
         #stellar-overlay.open { display: block; }
         #stellar-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
         #stellar-overlay .stellar-hud { position: absolute; top: 0; left: 0; right: 0; z-index: 4; display: flex; align-items: center; justify-content: space-between; padding: 18px 24px 0; }
@@ -503,7 +503,7 @@
         <div id="stellar-center">
             <div class="stellar-kicker">HAOHAI · CAMPUS</div>
             <button id="stellar-enter" type="button">进入浩海</button>
-            <div class="stellar-hint">移动鼠标靠近星点，点击进入模块</div>
+            <div class="stellar-hint" id="stellar-hint">点击进入浩海，开始探索</div>
         </div>
         <div id="stellar-tip" role="status">
             <span id="stellar-tip-title"></span>
@@ -2805,7 +2805,7 @@ const FALLBACK_MODEL = 'openrouter/free';
             if (loaded) return;
             loaded = true;
             var script = document.createElement('script');
-            script.src = 'assets/stellar.js?v=20261124b';
+            script.src = 'assets/stellar.js?v=20261124c';
             script.defer = true;
             script.onerror = function () {
                 document.documentElement.classList.remove('stellar-desktop');
