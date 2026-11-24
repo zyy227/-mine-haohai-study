@@ -1,10 +1,10 @@
-/* 浩海 study PWA Service Worker
+﻿/* 浩海 study PWA Service Worker
    策略：
    - 页面导航：先走网络，拿到新的 index.html；断网时回退 offline.html
    - 静态资源：缓存优先，后台更新
    - API / 管理后台 / APK 下载：不缓存，直接走网络
 */
-const CACHE = 'haohai-shell-v5';
+const CACHE = 'haohai-shell-v6';
 
 const CORE = [
     '/',
@@ -104,3 +104,4 @@ self.addEventListener('fetch', function (event) {
         })
     );
 });
+

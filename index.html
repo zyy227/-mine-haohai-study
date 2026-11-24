@@ -18,8 +18,28 @@
     <link rel="stylesheet" href="assets/hh-plus.css?v=20261123b">
     <link rel="stylesheet" href="assets/hh-mobile.css?v=20261123b">
     <link rel="stylesheet" href="assets/hh-polish.css?v=20261124c">
-    <link rel="stylesheet" href="assets/stellar.css?v=20261124a">
+    <link rel="stylesheet" href="assets/stellar.css?v=20261124b">
     <title>浩海 study · 校园课程与组队</title>
+    <style>
+        /* 星空页关键兜底：即使 stellar.css 因缓存/网络没加载，也不会把
+           logo 和文字按默认布局铺满整个页面。 */
+        #stellar-overlay { display: none; position: fixed; inset: 0; z-index: 9500; background: #05070f; color: #fff; overflow: hidden; }
+        #stellar-overlay.open { display: block; }
+        #stellar-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+        #stellar-overlay .stellar-hud { position: absolute; top: 0; left: 0; right: 0; z-index: 4; display: flex; align-items: center; justify-content: space-between; padding: 18px 24px 0; }
+        #stellar-overlay .stellar-brand { display: flex; align-items: center; gap: 9px; color: #fff; font-size: 18px; font-weight: 800; }
+        #stellar-overlay .stellar-brand img { width: 28px; height: 28px; }
+        #stellar-center { position: absolute; left: 50%; top: 50%; z-index: 5; transform: translate(-50%, -50%); text-align: center; }
+        #stellar-enter { opacity: 0; pointer-events: none; }
+        #stellar-enter.show { opacity: 1; pointer-events: auto; }
+        #stellar-tip { position: fixed; z-index: 9100; opacity: 0; visibility: hidden; }
+        #stellar-tip.show { opacity: 1; visibility: visible; }
+        #stellar-loading { position: absolute; left: 50%; top: 50%; z-index: 6; transform: translate(-50%, -50%); }
+        #stellar-module-backdrop { display: none; position: fixed; inset: 0; z-index: 9998; }
+        #stellar-module-close { display: none; position: fixed; z-index: 10001; }
+        body.stellar-module-open #stellar-module-backdrop { display: block; }
+        body.stellar-module-open #stellar-module-close { display: flex; }
+</style>
     <style>
         /* ========== 全局与基础样式 ========== */
         /* 统一盒模型：修复手机上 width:100vw + 内边距导致搜索框右侧按钮被挤出屏幕 */
@@ -2785,7 +2805,7 @@ const FALLBACK_MODEL = 'openrouter/free';
             if (loaded) return;
             loaded = true;
             var script = document.createElement('script');
-            script.src = 'assets/stellar.js?v=20261124a';
+            script.src = 'assets/stellar.js?v=20261124b';
             script.defer = true;
             script.onerror = function () {
                 document.documentElement.classList.remove('stellar-desktop');
