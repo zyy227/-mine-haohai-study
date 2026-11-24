@@ -288,7 +288,7 @@ function p0RenderCourseDetail(d) {
 
     var docHtml = docs.length ? docs.map(function (x) {
         var btn = x.link
-            ? '<a class="p0-btn sm" href="' + p0Esc(p0Safe(x.link)) + '" target="_blank" rel="noopener noreferrer" onclick="p0TrackDoc(' + Number(x.id) + ')">下载 / 预览</a>'
+            ? '<a class="p0-btn sm" href="' + p0Esc(p0Safe(x.link)) + '" data-open-file="' + p0Esc(x.link) + '" data-file-id="' + Number(x.id) + '">下载 / 预览</a>'
             : '<span class="p0-chip gray">未附文件</span>';
         var ownerName = (typeof hhDisplayNameForUser === 'function') ? hhDisplayNameForUser(x.owner_id, x.owner_email, '') : '';
         return '<div class="p0-list-item"><div class="p0-li-main">' +
@@ -1130,7 +1130,7 @@ function p0RenderMine(d) {
             '<div class="p0-li-title">📄 ' + p0Esc(x.name || '未命名资料') + (x.status === 'takedown' ? ' <span class="p0-chip red">已下架</span>' : '') + '</div>' +
             '<div class="p0-li-sub">' + p0Esc(x.type || '') + ' · ' + p0Date(x.created_at) + '</div>' +
             '</div><div class="p0-li-actions">' +
-            (x.link ? '<a class="p0-btn sm" href="' + p0Esc(p0Safe(x.link)) + '" target="_blank" rel="noopener noreferrer">打开</a>' : '<span class="p0-chip gray">无文件</span>') +
+            (x.link ? '<a class="p0-btn sm" href="' + p0Esc(p0Safe(x.link)) + '" data-open-file="' + p0Esc(x.link) + '">打开</a>' : '<span class="p0-chip gray">无文件</span>') +
             '</div></div>';
     }).join('') : '<div class="p0-empty">还没上传过资料。去课程页选一门课，把课件传上去。</div>';
 
