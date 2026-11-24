@@ -13,6 +13,7 @@
     subtabLabels: ['资料', '比赛', '美景'],
     subtabCards: ['doc-card', 'comp-card', 'scenery-card'],
     mascotImages: {
+      cloud: 'assets/mascot-cloud-body.png',
       head: 'assets/mascot-head.png',
       body: 'assets/mascot-body.png',
       legL: 'assets/mascot-leg-l.png',
@@ -168,78 +169,52 @@
     ob.observe(sec, { childList: true, subtree: true });
   }
 
-  /* ============ ③ AI 小人跟随动画 ============ */
+  /* ============ ③ AI 小人：白色云朵精灵 ============ */
   function buildMascot() {
     if (!CFG.enableMascot) return;
     var ball = document.getElementById('ai-ball');
     if (!ball || $('#hh-mascot')) return;
     ball.classList.add('hh-mascot-host');
-    // 清掉旧图标/光环，保留球的拖拽功能
-    var oldIcon = ball.querySelector('.ai-chip-icon'); if (oldIcon) oldIcon.style.display = 'none';
-    var oldRing = ball.querySelector('.ai-chip-ring'); if (oldRing) oldRing.style.display = 'none';
+
+    // 清掉旧图标/光环，保留球的拖拽/点击功能
+    var oldIcon = ball.querySelector('.ai-chip-icon');
+    if (oldIcon) oldIcon.style.display = 'none';
+    var oldRing = ball.querySelector('.ai-chip-ring');
+    if (oldRing) oldRing.style.display = 'none';
 
     var wrap = document.createElement('span');
     wrap.id = 'hh-mascot';
     wrap.innerHTML =
       '<span class="hh-mascot-glow"></span>' +
-      '<span class="hh-mascot-leg hh-mascot-leg-l"><img src="' + CFG.mascotImages.legL + '" alt=""></span>' +
-      '<span class="hh-mascot-leg hh-mascot-leg-r"><img src="' + CFG.mascotImages.legR + '" alt=""></span>' +
-      '<span class="hh-mascot-body"><img src="' + CFG.mascotImages.body + '" alt=""></span>' +
-      '<span class="hh-mascot-head"><img src="' + CFG.mascotImages.head + '" alt="">' +
-        '<span class="hh-mascot-face"><i class="hh-eye hh-eye-l"></i><i class="hh-eye hh-eye-r"></i></span>' +
+      '<span class="hh-mascot-cloud">' +
+        '<span class="hh-cloud-inner">' +
+          '<img class="hh-cloud-img" src="' + CFG.mascotImages.cloud + '" alt="">' +
+          '<span class="hh-cloud-eyes">' +
+            '<i class="hh-cloud-eye hh-cloud-eye-l"></i>' +
+            '<i class="hh-cloud-eye hh-cloud-eye-r"></i>' +
+          '</span>' +
+        '</span>' +
       '</span>';
     ball.insertBefore(wrap, ball.firstChild);
 
-    var legL = wrap.querySelector('.hh-mascot-leg-l');
-    var legR = wrap.querySelector('.hh-mascot-leg-r');
-    var head = wrap.querySelector('.hh-mascot-head');
-    var eyes = wrap.querySelectorAll('.hh-eye');
-    var walking = false, walkTimer = null, step = 0;
+    var cloud = wrap.querySelector('.hh-cloud-inner');
+    var eyes = wrap.querySelectorAll('.hh-cloud-eye');
 
-    function setDirection(dx) {
-      // dx: -1 左 / 1 右 —— 决定踏步先迈哪条腿
-      wrap.style.setProperty('--hh-dir', String(dx));
-    }
-    function startWalk() {
-      if (walking) return;
-      walking = true;
-      wrap.classList.add('walking');
-      walkTimer = setInterval(function () {
-        step++;
-        var dir = Number(wrap.style.getPropertyValue('--hh-dir')) || 1;
-        if (dir >= 0) {
-          legL.style.transform = (step % 2 ? 'rotate(12deg)' : 'rotate(-8deg)');
-          legR.style.transform = (step % 2 ? 'rotate(-8deg)' : 'rotate(12deg)');
-        } else {
-          legL.style.transform = (step % 2 ? 'rotate(-8deg)' : 'rotate(12deg)');
-          legR.style.transform = (step % 2 ? 'rotate(12deg)' : 'rotate(-8deg)');
-        }
-      }, 180);
-    }
-    function stopWalk() {
-      walking = false;
-      wrap.classList.remove('walking');
-      clearInterval(walkTimer);
-      legL.style.transform = ''; legR.style.transform = '';
-    }
-
-    var lastMove = 0;
     document.addEventListener('mousemove', function (e) {
       var r = ball.getBoundingClientRect();
-      var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-      var dx = e.clientX - cx, dy = e.clientY - cy;
-      var ang = Math.max(-16, Math.min(16, (dx / Math.max(120, Math.abs(dx) + Math.abs(dy))) * 16));
-      head.style.transform = 'rotate(' + ang.toFixed(1) + 'deg)';
-      // 眼珠跟随鼠标（小范围平移）
-      var ex = Math.max(-3, Math.min(3, dx / 40)), ey = Math.max(-2, Math.min(2, dy / 60));
+      var cx = r.left + r.width / 2;
+      var cy = r.top + r.height / 2;
+      var dx = e.clientX - cx;
+      var dy = e.clientY - cy;
+
+      var tilt = Math.max(-5, Math.min(5, dx / 65));
+      cloud.style.setProperty('--hh-cloud-tilt', tilt.toFixed(1) + 'deg');
+
+      var ex = Math.max(-2.4, Math.min(2.4, dx / 55));
+      var ey = Math.max(-1.6, Math.min(1.6, dy / 80));
       eyes[0].style.transform = 'translate(' + ex.toFixed(1) + 'px,' + ey.toFixed(1) + 'px)';
       eyes[1].style.transform = 'translate(' + ex.toFixed(1) + 'px,' + ey.toFixed(1) + 'px)';
-      setDirection(dx >= 0 ? 1 : -1);
-      lastMove = Date.now();
-      startWalk();
     }, { passive: true });
-    // 鼠标停下 1 秒后停止踏步
-    setInterval(function () { if (walking && Date.now() - lastMove > 1000) stopWalk(); }, 400);
   }
 
   ready(function () {
