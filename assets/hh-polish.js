@@ -47,6 +47,8 @@
       var card = document.getElementById(id);
       if (card) card.style.display = (i === index) ? 'block' : 'none';
     });
+    // 关键修复：离开 all 时把整条设为 none，切回来必须恢复，否则三个子选项消失
+    if (subtabBar && isMobile()) subtabBar.style.display = '';
     if (subtabBar) {
       Array.prototype.forEach.call(subtabBar.querySelectorAll('.hh-subtab'), function (b, i) {
         b.classList.toggle('active', i === index);
@@ -79,7 +81,7 @@
     applySub(0);
   }
 
-  // 包装 p0Show：进入 all 模式时应用子选项，离开 all 时恢复三卡都显示（PC 端不受影响）
+  // 包装 p0Show：进入 all 模式时应用子选项，离开 all 时隐藏子选项条（PC 端始终不显示）
   function wrapP0Show() {
     var orig = window.p0Show;
     if (typeof orig !== 'function' || orig.__hhWrapped) return;
@@ -87,8 +89,13 @@
       orig(mod);
       var m = mod || 'all';
       if (m === 'all') {
-        if (isMobile()) { buildSubTabs(); applySub(currentSub); }
-        else {
+        if (isMobile()) {
+          buildSubTabs();
+          // 每次回到 all 都重置到默认的「资料」，避免出现只剩某一个模块的状态
+          currentSub = 0;
+          applySub(0);
+          if (subtabBar) subtabBar.style.display = '';
+        } else {
           CFG.subtabCards.forEach(function (id) {
             var c = document.getElementById(id); if (c) c.style.display = 'block';
           });
