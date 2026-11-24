@@ -149,7 +149,8 @@
 
 
         /* ========== 主界面 ========== */
-        #main-screen { display: none; opacity: 0; transition: opacity 0.8s ease; min-height: 100vh; background-image: url('二界面背景.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
+        /* 顶部深色渐变 + 深蓝兜底：压住背景图顶部的浅色，消除进入界面时的白边 */
+        #main-screen { display: none; opacity: 0; transition: opacity 0.8s ease; min-height: 100vh; background-color: #0a2247; background-image: linear-gradient(180deg, rgba(8,28,60,.97) 0, rgba(8,28,60,.88) 90px, rgba(8,28,60,.42) 180px, rgba(8,28,60,0) 300px), url('二界面背景.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
         .navbar { position: sticky; top: 0; z-index: 800; background: rgba(0, 64, 133, 0.75); backdrop-filter: blur(10px); color: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .navbar-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
         .nav-back { position: static; transform: none; flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.18); color: #fff; font-size: 18px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; }
@@ -329,9 +330,11 @@
         .action-card-btns button:hover { background: #eef2ff; }
         .action-card-btns .btn-publish { background: #28a745; color: #fff; border-color: #28a745; font-weight: bold; }
         .action-card-btns .btn-publish:hover { background: #218838; }
+        .action-card-btns .btn-course { background: #f3e5ff; color: #7b1fa2; border-color: #d7b3e6; font-weight: bold; }
+        .action-card-btns .btn-course:hover { background: #ead1f5; }
         .action-card-btns .btn-del { color: #e00; }
 
-        #draft-box-modal, #draft-preview-modal { display: none; position: fixed; inset: 0; z-index: 10001; background: rgba(0,0,0,.5); align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
+        #draft-box-modal, #draft-preview-modal, #course-pick-modal { display: none; position: fixed; inset: 0; z-index: 10001; background: rgba(0,0,0,.5); align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
         .draftbox-panel { background: #fff; width: 100%; max-width: 640px; max-height: 86vh; border-radius: 14px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 12px 40px rgba(0,0,0,.3); }
         .draftbox-head { padding: 14px 18px; font-weight: bold; font-size: 16px; color: #004085; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
         .draftbox-head .db-close { cursor: pointer; font-size: 22px; color: #999; line-height: 1; }
@@ -348,7 +351,15 @@
         .dp-save { background: #eef2ff; color: #5566cc; }
         .dp-word { background: #1890ff; color: #fff; }
         .dp-publish { background: #28a745; color: #fff; }
+        .dp-course { background: #f3e5ff; color: #7b1fa2; }
         .dp-del { background: #fff0f0; color: #e00; }
+        /* 🎓 课程选择弹窗 */
+        .course-pick-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; margin-bottom: 10px; border: 1px solid #e3e8ff; border-radius: 10px; background: #fff; cursor: pointer; text-align: left; font-size: 14px; color: #333; }
+        .course-pick-item:hover { background: #f3e5ff; border-color: #b96ad0; }
+        .course-pick-item .cp-name { font-weight: bold; }
+        .course-pick-item .cp-meta { font-size: 12px; color: #888; margin-top: 3px; }
+        .course-pick-item .cp-go { color: #7b1fa2; font-size: 18px; flex-shrink: 0; }
+        .course-pick-foot { padding: 10px 18px; border-top: 1px solid #eee; font-size: 12px; color: #999; }
 
         .thinking-block { display: inline-block; max-width: 100%; margin-bottom: 6px; border: 1px solid #e3e8ff; border-radius: 999px; overflow: hidden; background: #f7f9ff; cursor: pointer; vertical-align: top; }
         .thinking-summary { padding: 3px 10px; font-size: 12px; color: #667eea; font-weight: bold; display: inline-flex; align-items: center; gap: 6px; user-select: none; white-space: nowrap; }
@@ -761,10 +772,23 @@
             <div class="draft-preview-actions">
                 <button class="dp-btn dp-save" onclick="saveDraftEdit()">💾 保存修改</button>
                 <button class="dp-btn dp-word" onclick="downloadDraftWord()">📄 下载 Word</button>
-                <button class="dp-btn dp-publish" onclick="publishDraft()">🚀 发布到共享库</button>
-                <button class="dp-btn dp-del" onclick="deleteDraft()">🗑 删除草稿</button>
+                <button class="dp-btn dp-publish" onclick="publishDraftById(currentDraftId)">🚀 发布到共享库</button>
+                <button class="dp-btn dp-course" onclick="openCoursePick(currentDraftId)">🎓 发布到课程</button>
+                <button class="dp-btn dp-del" onclick="deleteDraftById(currentDraftId)">🗑 删除草稿</button>
             </div>
-            <p class="draft-preview-tip">提示：可直接编辑上方内容，改完点“保存修改”。“发布”后这份资料会上传到云端，所有人可见。</p>
+            <p class="draft-preview-tip">提示：可直接编辑上方内容，改完点“保存修改”。“发布到共享库”所有人可见；“发布到课程”会把资料挂到你选的课程下。</p>
+        </div>
+    </div>
+
+    <!-- 🎓 选择课程发布弹窗（AI 草稿 → 课程中心） -->
+    <div id="course-pick-modal">
+        <div class="draftbox-panel">
+            <div class="draftbox-head">
+                <span>🎓 选择要发布到的课程</span>
+                <span class="db-close" onclick="closeCoursePick()">&times;</span>
+            </div>
+            <div class="draftbox-body" id="course-pick-body"></div>
+            <div class="course-pick-foot">点一门课程即可发布，资料会挂到该课程下，所有人可见。</div>
         </div>
     </div>
 
@@ -2259,6 +2283,7 @@ const FALLBACK_MODEL = 'openrouter/free';
                 '<div class="action-card-btns">' +
                 '<button onclick="openDraftPreview(' + actionId + ')">👁 查看/编辑</button>' +
                 '<button class="btn-publish" onclick="publishDraftById(' + actionId + ')">🚀 发布</button>' +
+                '<button class="btn-course" onclick="openCoursePick(' + actionId + ')">🎓 发到课程</button>' +
                 '</div>';
             wrapEl.appendChild(card);
             if (containerEl) containerEl.scrollTop = containerEl.scrollHeight;
@@ -2291,6 +2316,7 @@ const FALLBACK_MODEL = 'openrouter/free';
                     '<div class="action-card-btns">' +
                     '<button onclick="openDraftPreview(' + d.id + ')">👁 查看/编辑</button>' +
                     '<button class="btn-publish" onclick="publishDraftById(' + d.id + ')">🚀 发布</button>' +
+                    '<button class="btn-course" onclick="openCoursePick(' + d.id + ')">🎓 发到课程</button>' +
                     '<button class="btn-del" onclick="deleteDraftById(' + d.id + ')">🗑 删除</button>' +
                     '</div>';
                 body.appendChild(div);
@@ -2345,29 +2371,80 @@ const FALLBACK_MODEL = 'openrouter/free';
         }
 
         // 发布草稿：把它变成云端公共库里的一条，所有人可见
-        async function publishDraftById(id) {
+        // courseId 可选：传了就挂到课程中心对应课程下（课程页和共享库都能看到）
+        async function publishDraftById(id, courseId) {
             if (!requireLogin('发布内容')) return;
             const d = drafts.find(x => x.id === id);
             if (!d) return;
             const registry = ACTION_REGISTRY[d.type];
             if (!registry) { alert('不支持的内容类型'); return; }
-            if (!await askConfirm('确定发布《' + d.title + '》吗？发布后所有人都能在「' + registry.label + '」里看到。', { title: '确认发布', okText: '确认发布', icon: '📤', danger: false })) return;
+            let courseName = '';
+            if (courseId) {
+                const c = (window.P0 && P0.courses || []).find(x => Number(x.id) === Number(courseId));
+                courseName = c ? c.name : '';
+            }
+            const targetText = courseId ? ('课程「' + (courseName || '所选课程') + '」') : ('「' + registry.label + '」');
+            if (!await askConfirm('确定发布《' + d.title + '》吗？发布后所有人都能在' + targetText + '里看到。', { title: '确认发布', okText: '确认发布', icon: '📤', danger: false })) return;
+            if (courseId) closeCoursePick();
             const btn = document.querySelector('button[onclick="publishDraftById(' + id + ')"]');
             if (btn) { btn.disabled = true; btn.textContent = '⏳ 发布中...'; }
             try {
                 const item = await registry.makeItem(d);       // 生成 Word / 上传 / 组装记录
+                if (courseId) item.course_id = Number(courseId); // 🎓 挂到课程中心
                 const ok = await insertRow(registry.kind, item); // 写入公共清单
                 if (!ok) throw new Error('写入云端失败');
                 drafts = drafts.filter(x => x.id !== id);
                 saveDrafts();
                 closeDraftPreview();
+                closeCoursePick();
                 renderDraftBox();
                 await loadFromCloud();   // 刷新列表，立即显示新发布的内容
-                alert('✅ 发布成功！《' + d.title + '》已进入共享库，所有人可见。');
+                if (courseId && window.P0) { P0.loaded.courses = false; if (P0.module === 'courses') p0LoadCourses(); }
+                alert('✅ 发布成功！《' + d.title + '》' + (courseId ? ('已进入课程「' + (courseName || '所选课程') + '」') : '已进入共享库') + '，所有人可见。');
             } catch (e) {
                 alert('发布失败：' + e.message + '\n草稿已保留，可稍后重试。');
                 if (btn) { btn.disabled = false; btn.textContent = '🚀 发布'; }
             }
+        }
+
+        // ---------- 🎓 从 AI 草稿发布到课程中心：选课程 ----------
+        let coursePickDraftId = null;
+        async function openCoursePick(id) {
+            if (!requireLogin('发布到课程')) return;
+            coursePickDraftId = id;
+            const modal = document.getElementById('course-pick-modal');
+            const body = document.getElementById('course-pick-body');
+            if (!modal || !body) return;
+            modal.style.display = 'flex';
+            body.innerHTML = '<div class="draftbox-empty">正在加载课程列表…</div>';
+            try {
+                // 优先用已加载的课程，减少一次网络请求；没有就实时拉
+                let courses = (window.P0 && P0.courses) || [];
+                if (!courses.length) {
+                    const res = await withTimeout(fetch('/api/courses'), 12000);
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    const json = await res.json();
+                    courses = Array.isArray(json.courses) ? json.courses : [];
+                }
+                if (!courses.length) {
+                    body.innerHTML = '<div class="draftbox-empty">还没有课程。<br>可先到「课程中心」创建一门课，再回来发布。</div>';
+                    return;
+                }
+                body.innerHTML = courses.map(function (c) {
+                    const cid = Number(c.id);
+                    const meta = [c.college, c.teacher].filter(Boolean).join(' · ');
+                    return '<button type="button" class="course-pick-item" onclick="publishDraftById(coursePickDraftId,' + cid + ')">' +
+                        '<span><span class="cp-name">' + escapeHtml(c.name || '未命名课程') + '</span>' +
+                        (meta ? '<div class="cp-meta">' + escapeHtml(meta) + '</div>' : '') + '</span>' +
+                        '<span class="cp-go">➜</span></button>';
+                }).join('');
+            } catch (e) {
+                body.innerHTML = '<div class="draftbox-empty">课程加载失败：' + escapeHtml(e.message || '网络异常') + '<br>请检查网络后重试。</div>';
+            }
+        }
+        function closeCoursePick() {
+            const modal = document.getElementById('course-pick-modal');
+            if (modal) modal.style.display = 'none';
         }
 
         // 点击弹窗遮罩关闭
@@ -2376,6 +2453,9 @@ const FALLBACK_MODEL = 'openrouter/free';
         });
         document.getElementById('draft-preview-modal').addEventListener('click', function (e) {
             if (e.target === this) closeDraftPreview();
+        });
+        document.getElementById('course-pick-modal').addEventListener('click', function (e) {
+            if (e.target === this) closeCoursePick();
         });
 
         function toggleUploadForm() {
