@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="assets/hh-plus.css?v=20261123b">
     <link rel="stylesheet" href="assets/hh-mobile.css?v=20261123b">
     <link rel="stylesheet" href="assets/hh-polish.css?v=20261124c">
+    <link rel="stylesheet" href="assets/stellar.css?v=20261124a">
     <title>浩海 study · 校园课程与组队</title>
     <style>
         /* ========== 全局与基础样式 ========== */
@@ -472,6 +473,27 @@
 </head>
 <body>
 
+    <!-- ================= 桌面端专属：星空欢迎页 / 星空导航 ================= -->
+    <div id="stellar-overlay" aria-hidden="true">
+        <canvas id="stellar-canvas"></canvas>
+        <div class="stellar-hud">
+            <div class="stellar-brand"><img src="favicon.svg" alt=""><span>浩海<span class="study">study</span></span></div>
+            <button id="stellar-back" type="button">← 返回浩海</button>
+        </div>
+        <div id="stellar-center">
+            <div class="stellar-kicker">HAOHAI · CAMPUS</div>
+            <button id="stellar-enter" type="button">进入浩海</button>
+            <div class="stellar-hint">移动鼠标靠近星点，点击进入模块</div>
+        </div>
+        <div id="stellar-tip" role="status">
+            <span id="stellar-tip-title"></span>
+            <span id="stellar-tip-desc"></span>
+        </div>
+        <div id="stellar-loading">正在进入星空…</div>
+    </div>
+    <div id="stellar-module-backdrop"></div>
+    <button id="stellar-module-close" type="button" aria-label="关闭模块">×</button>
+
     <!-- 下载手机版入口（安装到主屏幕/APK 后自动隐藏） -->
     <a class="download-fab" href="/download/" title="下载手机版">📱 下载手机版</a>
 
@@ -618,6 +640,7 @@
                <button class="nav-back" type="button" onclick="returnToStart()" title="返回首页" aria-label="返回首页">←</button>
                <h2 style="display:flex;align-items:center;gap:8px;"><img src="favicon.svg" alt="logo" style="width:28px;height:28px;">浩海<span class="study-text">study</span></h2>
            </div>
+           <button class="stellar-nav-btn" type="button" onclick="if(window.openStellar)window.openStellar('space')" title="进入星空">🌌 星空</button>
            <div class="auth-area" id="auth-area"></div>
        </div>
         <div class="container">
@@ -2747,6 +2770,31 @@ const FALLBACK_MODEL = 'openrouter/free';
         if (el) el.classList.remove('show');
         try { localStorage.setItem('hh_install_dismissed', '1'); } catch (_) {}
     };
+</script>
+<script>
+    // 桌面端才加载 Three.js 星空，手机端完全不下载这份 544KB 的包
+    (function () {
+        var loaded = false;
+        function boot() {
+            var ua = navigator.userAgent || '';
+            var iPad = /Macintosh/i.test(ua) && navigator.maxTouchPoints > 1;
+            var desktop = window.innerWidth >= 900 &&
+                !/Android|iPhone|iPad|iPod|Mobile/i.test(ua) && !iPad;
+            if (!desktop) return;
+            document.documentElement.classList.add('stellar-desktop');
+            if (loaded) return;
+            loaded = true;
+            var script = document.createElement('script');
+            script.src = 'assets/stellar.js?v=20261124a';
+            script.defer = true;
+            script.onerror = function () {
+                document.documentElement.classList.remove('stellar-desktop');
+            };
+            document.head.appendChild(script);
+        }
+        boot();
+        window.addEventListener('resize', boot);
+    })();
 </script>
 </body>
 </html>
