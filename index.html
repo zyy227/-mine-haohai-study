@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="assets/p0.css?v=20261123b">
     <link rel="stylesheet" href="assets/hh-plus.css?v=20261123b">
     <link rel="stylesheet" href="assets/hh-mobile.css?v=20261123b">
+    <link rel="stylesheet" href="assets/hh-polish.css?v=20261124b">
     <title>浩海 study · 校园课程与组队</title>
     <style>
         /* ========== 全局与基础样式 ========== */
@@ -492,7 +493,7 @@
             <div class="detail-info">👤 上传者：<span id="modal-doc-type" style="font-weight:bold; color:#0c5460;"></span></div>
             <div class="detail-info">🕒 状态：<span style="color:#28a745;">已共享</span></div>
             <div class="detail-desc">这是一个优质的校园共享资料。点击下方按钮即可前往查看或下载。</div>
-            <a href="#" target="_blank" class="download-btn" id="modal-doc-link">📥 点击下载 / 预览资料</a>
+            <a href="#" class="download-btn" id="modal-doc-link">📥 点击下载 / 预览资料</a>
         </div>
     </div>
 
@@ -2409,8 +2410,7 @@ const FALLBACK_MODEL = 'openrouter/free';
                 const manageBtns = canEdit(item)
                     ? '<button class="edit-btn" onclick="editComp(' + id + ')">编辑</button><button class="del-btn" onclick="deleteComp(' + id + ')">删除</button>'
                     : (currentUser ? '<span class="owner-tag">他人/平台发布</span>' : '');
-                const clickTrack = "trackMetric('download'," + id + ")";
-                div.innerHTML = `<a href="${escapeHtml(safeUrl(item.link))}" onclick="${clickTrack}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title)}</a><div>${ownerText}${takedownTag(item)}<span class="tag" style="${tagColor}">${tagText}</span>${manageBtns}</div>`;
+                div.innerHTML = `<a href="${escapeHtml(safeUrl(item.link))}" data-open-file="${escapeHtml(item.link)}" data-file-id="${id}">${escapeHtml(item.title)}</a><div>${ownerText}${takedownTag(item)}<span class="tag" style="${tagColor}">${tagText}</span>${manageBtns}</div>`;
                 compContainer.appendChild(div);
             });
 
@@ -2434,7 +2434,7 @@ const FALLBACK_MODEL = 'openrouter/free';
             document.getElementById("modal-doc-type").innerText = doc.type;
             let btn = document.getElementById("modal-doc-link");
             if (doc.link && /^(https?:\/\/|\/)/i.test(String(doc.link).trim())) {
-                btn.href = safeUrl(doc.link); btn.innerText = "📥 点击下载 / 预览资料"; btn.style.background = "#1890ff"; btn.onclick = function () { trackMetric('download', id); }; btn.target = "_blank"; btn.rel = "noopener noreferrer";
+                btn.href = safeUrl(doc.link); btn.innerText = "📥 点击下载 / 预览资料"; btn.style.background = "#1890ff"; btn.target = "_self"; btn.removeAttribute("rel"); btn.onclick = function (e) { e.preventDefault(); hhOpenFile(doc.link, e, id); };
             } else {
                 btn.href = "javascript:void(0);"; btn.innerText = "⚠️ 该资料未提供下载链接"; btn.style.background = "#999"; btn.onclick = function(e) { e.preventDefault(); alert("上传者没有留下下载链接哦！"); };
             }
@@ -2680,7 +2680,7 @@ const FALLBACK_MODEL = 'openrouter/free';
                 const items = (data.items || []).slice(0, 8);
                 if (!items.length) { listEl.innerHTML = '<p class="news-tip">暂无新闻</p>'; return; }
                 listEl.innerHTML = items.map((it, i) => `
-                    <a class="news-item" href="${escapeHtml(safeUrl(it.link))}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(it.title)}">
+                    <a class="news-item" href="${escapeHtml(safeUrl(it.link))}" data-open-file="${escapeHtml(it.link)}" title="${escapeHtml(it.title)}">
                         <span class="news-idx">${i + 1}</span>
                         <span class="news-text">${escapeHtml(it.title)}</span>
                     </a>`).join('');
@@ -2708,9 +2708,11 @@ const FALLBACK_MODEL = 'openrouter/free';
             </div>
         </div>
     </div>
+<script src="assets/hh-open.js?v=20261124a"></script>
 <script src="assets/p0.js?v=20261123b"></script>
 <script src="assets/hh-plus.js?v=20261123b"></script>
 <script src="assets/hh-mobile.js?v=20261123b"></script>
+<script src="assets/hh-polish.js?v=20261124a"></script>
 <script>
     // PWA：注册 Service Worker（只在 https 下），并在已安装/APK 内隐藏“下载手机版”入口
     (function () {
