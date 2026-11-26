@@ -1,0 +1,74 @@
+/* ============================================================
+   浩海 study · 首页标识排版（PC 桌面）
+   目标：新闻左下 / 关于右下 / 搜索栏收窄 / 账号工具收进右上角
+   全部尺寸集中在下方变量，方便后续微调；手机端（<=768px）保持原布局不变。
+   ============================================================ */
+:root {
+  --hh-home-edge: 18px;          /* 四角距屏幕边缘 */
+  --hh-home-search-w: 420px;     /* 搜索栏宽度（收窄，Edge 风格） */
+  --hh-home-corner-w: 320px;     /* 左下新闻 / 右下关于 宽度 */
+  --hh-home-download-w: 124px;   /* 右上角给“下载手机版”预留的宽度 */
+  --hh-home-tool-top: 16px;      /* 右上角工具距顶部 */
+}
+
+@media (min-width: 769px) {
+  /* ---- 右上角：管理后台 / 头像 / 用户名 / 退出（缩小并靠右） ----
+     用 fixed 相对视口定位，避免被 .start-header 的 relative 偏移量带下去 */
+  body:not(:has(#start-screen[style*="display: none"])) .start-auth {
+    position: fixed;
+    top: var(--hh-home-tool-top);
+    right: calc(var(--hh-home-edge) + var(--hh-home-download-w) + 10px);
+    z-index: 30;
+    margin-left: 0;
+    gap: 6px;
+  }
+  .start-auth .auth-btn { font-size: 12px; padding: 5px 10px; }
+  .start-auth .auth-user { gap: 6px; font-size: 12px; }
+  .start-auth .auth-avatar { width: 24px; height: 24px; font-size: 11px; }
+  .start-auth .auth-user > span:not(.auth-avatar) { max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ---- 右上角：下载手机版（仅首页；进入主界面自动回左下角悬浮） ---- */
+  body:not(:has(#start-screen[style*="display: none"])) .download-fab {
+    position: fixed;
+    left: auto;
+    right: var(--hh-home-edge);
+    top: var(--hh-home-tool-top);
+    bottom: auto;
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  /* ---- 搜索栏收窄 ---- */
+  .search-area,
+  .search-container,
+  .filter-panel { max-width: var(--hh-home-search-w); }
+  .search-input { font-size: 15px; padding: 8px 12px; }
+  .filter-trigger { font-size: 12px; padding: 5px 10px; margin-right: 6px; }
+  .start-btn { width: 40px; height: 40px; font-size: 18px; }
+
+  /* ---- 左下角：每日新闻 ---- */
+  .news-card {
+    position: fixed;
+    left: var(--hh-home-edge);
+    bottom: var(--hh-home-edge);
+    right: auto;
+    top: auto;
+    width: var(--hh-home-corner-w);
+    max-width: var(--hh-home-corner-w);
+    margin: 0;
+    z-index: 6;
+  }
+
+  /* ---- 右下角：关于浩海 study ---- */
+  .p0-about {
+    position: fixed;
+    right: var(--hh-home-edge);
+    bottom: var(--hh-home-edge);
+    left: auto;
+    top: auto;
+    width: var(--hh-home-corner-w);
+    max-width: var(--hh-home-corner-w);
+    margin: 0;
+    z-index: 6;
+  }
+}
