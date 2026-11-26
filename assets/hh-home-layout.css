@@ -5,13 +5,17 @@
    ============================================================ */
 :root {
   --hh-home-edge: 18px;          /* 四角距屏幕边缘 */
-  --hh-home-search-w: 420px;     /* 搜索栏宽度（收窄，Edge 风格） */
+  --hh-home-search-w: 820px;     /* 搜索栏宽度：拉长到截图黄线竖线位置 */
   --hh-home-corner-w: 320px;     /* 左下新闻 / 右下关于 宽度 */
   --hh-home-download-w: 124px;   /* 右上角给“下载手机版”预留的宽度 */
   --hh-home-tool-top: 16px;      /* 右上角工具距顶部 */
 }
 
 @media (min-width: 769px) {
+  /* ---- 首页五个分类导航（首页/课程/组队/互助/我的）：PC 端隐藏 ----
+     只在本媒体查询内隐藏，手机端（<=768px）完全不受影响 */
+  #nav-tabs { display: none !important; }
+
   /* ---- 右上角：管理后台 / 头像 / 用户名 / 退出（缩小并靠右） ----
      用 fixed 相对视口定位，避免被 .start-header 的 relative 偏移量带下去 */
   body:not(:has(#start-screen[style*="display: none"])) .start-auth {
@@ -38,13 +42,15 @@
     font-size: 12px;
   }
 
-  /* ---- 搜索栏收窄 ---- */
+  /* ---- 搜索栏：横向拉长、纵向压扁（对齐截图黄线） ---- */
   .search-area,
   .search-container,
   .filter-panel { max-width: var(--hh-home-search-w); }
-  .search-input { font-size: 15px; padding: 8px 12px; }
-  .filter-trigger { font-size: 12px; padding: 5px 10px; margin-right: 6px; }
-  .start-btn { width: 40px; height: 40px; font-size: 18px; }
+  /* 压扁高度：减小容器内边距 + 内部控件高度 */
+  .search-container { padding: 4px 8px; min-height: 0; }
+  .search-input { font-size: 15px; padding: 4px 12px; line-height: 1.2; }
+  .filter-trigger { font-size: 12px; padding: 3px 10px; margin-right: 6px; }
+  .start-btn { width: 32px; height: 32px; font-size: 15px; }
 
   /* ---- 左下角：每日新闻 ---- */
   .news-card {
