@@ -47,6 +47,9 @@ jobs:
       - name: Generate app icon
         run: npx capacitor-assets generate --android
 
+      - name: Remove native splash icon
+        run: python3 remove-native-splash-icon.py
+
       - name: Build debug APK
         run: |
           cd android
