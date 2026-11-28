@@ -813,7 +813,7 @@
         <div class="ai-quick-prompts">
             <button onclick="useQuickPrompt('帮我总结这份资料的重点')">📚 总结资料</button>
             <button onclick="useQuickPrompt('给我推荐几个适合大一学生的竞赛')">🏆 推荐竞赛</button>
-            <button onclick="useQuickPrompt('用简单的语言解释一下这个概念')">💡 通俗解释</button>
+            <button onclick="useQuickPrompt('请用大一学生能听懂的话，解释一下什么是数据结构，并举一个生活里的例子')">💡 通俗解释</button>
             <button onclick="useQuickPrompt('帮我把《XXX》这门课的知识点整理成一份完整的学习笔记，直接生成可发布的Word文档')">✍️ 生成笔记</button>
             <button onclick="openDraftBox()">📝 草稿箱</button>
         </div>
@@ -1669,6 +1669,7 @@ const FALLBACK_MODEL = 'openrouter/free';
             const input = document.getElementById('ai-input');
             input.value = text;
             input.focus();
+            handleSendClick();
         }
 
         function escapeHtml(text) {
