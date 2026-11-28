@@ -103,17 +103,32 @@
     }, true);
   }
 
-  /* ---- 3) 顶部导航抖动：去掉 sticky 与 blur 组合 ---- */
+  /* ---- 3) 顶部导航：固定在顶部，上滑时保持在原位不动 ---- */
   function fixNav() {
     if (!CFG.enableNavStickFix) return;
     var nav = $('.navbar');
     if (!nav) return;
-    nav.style.position = 'relative';
-    nav.style.top = 'auto';
-    nav.style.margin = '0';
-    nav.style.backdropFilter = 'none';
-    nav.style.webkitBackdropFilter = 'none';
-    nav.style.transition = 'none';
+    nav.style.setProperty('position', 'fixed', 'important');
+    nav.style.setProperty('top', '0', 'important');
+    nav.style.setProperty('left', '0', 'important');
+    nav.style.setProperty('right', '0', 'important');
+    nav.style.setProperty('width', '100%', 'important');
+    nav.style.setProperty('margin', '0', 'important');
+    nav.style.setProperty('z-index', '9000', 'important');
+    nav.style.setProperty('backdrop-filter', 'none', 'important');
+    nav.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+    nav.style.setProperty('transition', 'none', 'important');
+    // 用实测高度给正文留位，避免首屏被固定栏遮挡
+    function pad() {
+      var main = document.getElementById('main-screen');
+      if (!main) return;
+      var h = Math.ceil(nav.getBoundingClientRect().height) || 64;
+      document.documentElement.style.setProperty('--hh-nav-h', (h + 4) + 'px');
+    }
+    pad();
+    setTimeout(pad, 300);
+    setTimeout(pad, 1200);
+    window.addEventListener('resize', pad);
   }
 
   ready(function () {

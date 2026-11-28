@@ -30,9 +30,15 @@ button .hh-ico, a .hh-ico { pointer-events: none; }
 
 /* ============ 2) 顶部导航：从"毛玻璃胶囊"改为"方正硬朗栏" ============ */
 .navbar {
-  border-radius: 0 !important;
+  /* 固定在顶部：上滑时蓝色导航栏保持不动 */
+  position: fixed !important;
   top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
   margin: 0 !important;
+  z-index: 9000 !important;
+  border-radius: 0 !important;
   padding: 10px 18px calc(10px + env(safe-area-inset-top, 0px)) !important;
   background: #14346a !important;
   background-image: none !important;
@@ -43,6 +49,13 @@ button .hh-ico, a .hh-ico { pointer-events: none; }
   -webkit-backdrop-filter: none !important;
   transition: none !important;   /* 关键：去掉 blur/transition，消除滑动时抖动 */
   will-change: auto;
+  box-sizing: border-box !important;
+}
+/* 主界面正文留出固定导航栏的高度，避免第一屏被遮挡（高度由脚本按实测值设置） */
+#main-screen { padding-top: var(--hh-nav-h, 64px) !important; }
+@media (min-width: 821px) {
+  .navbar { position: static !important; }
+  #main-screen { padding-top: 0 !important; }
 }
 /* 标题"浩海study"：强制横向、不压缩、不换行 */
 .navbar h2,
