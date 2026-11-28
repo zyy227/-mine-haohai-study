@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="assets/hh-mobile.css?v=20261123b">
     <link rel="stylesheet" href="assets/hh-polish.css?v=20261124d">
     <link rel="stylesheet" href="assets/stellar.css?v=20261124c">
+    <link rel="stylesheet" href="assets/hh-design.css?v=20261128a">
     <title>浩海 study · 校园课程与组队</title>
     <style>
         /* 星空页关键兜底：即使 stellar.css 因缓存/网络没加载，也不会把
@@ -929,6 +930,8 @@
         // 管理员邮箱（仅用于控制"管理后台"入口显示；真正的权限校验在服务端 /api/admin 完成）
         const ADMIN_EMAIL = '2984054909@qq.com';
         function isAdmin() { return !!(currentUser && currentUser.email && currentUser.email.toLowerCase() === ADMIN_EMAIL); }
+        // 暴露给手机端增强脚本（我的页头像右侧管理入口），保持与页面内判断一致
+        window.hhIsAdmin = isAdmin;
 
         // 2. AI 配置
         // 🔒 密钥已移至 Cloudflare Pages 环境变量 OPENROUTER_API_KEY，前端不再保存任何密钥
@@ -2840,6 +2843,8 @@ const FALLBACK_MODEL = 'openrouter/free';
 <script src="assets/hh-plus.js?v=20261123b"></script>
 <script src="assets/hh-mobile.js?v=20261123b"></script>
 <script src="assets/hh-polish.js?v=20261124d"></script>
+<script src="assets/hh-icons.js?v=20261128a"></script>
+<script src="assets/hh-mobile-fix.js?v=20261128a"></script>
 <script>
     // PWA：注册 Service Worker（只在 https 下），并在已安装/APK 内隐藏“下载手机版”入口
     (function () {
