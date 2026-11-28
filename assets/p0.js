@@ -292,7 +292,7 @@ function p0RenderCourseDetail(d) {
             : '<span class="p0-chip gray">未附文件</span>';
         var ownerName = (typeof hhDisplayNameForUser === 'function') ? hhDisplayNameForUser(x.owner_id, x.owner_email, '') : '';
         return '<div class="p0-list-item"><div class="p0-li-main">' +
-            '<div class="p0-li-title">📄 ' + p0Esc(x.name || '未命名资料') + '</div>' +
+            '<div class="p0-li-title"' + (x.link ? ' data-open-file="' + p0Esc(x.link) + '" data-file-id="' + Number(x.id) + '" style="cursor:pointer"' : '') + '>📄 ' + p0Esc(x.name || '未命名资料') + '</div>' +
             '<div class="p0-li-sub">' + p0Esc(x.type || '') + (ownerName ? ' · by ' + p0Esc(ownerName) : '') + '</div>' +
             '</div><div class="p0-li-actions">' + btn + '</div></div>';
     }).join('') : '<div class="p0-empty">这门课还没有资料。登录后点下方按钮，把课件 / 往年题 / 笔记传上来。</div>';

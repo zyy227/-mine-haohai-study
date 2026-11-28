@@ -1,0 +1,211 @@
+/* 浩海 study · 去 AI 味设计系统 v1
+   目标：打破"所有模块都是圆弧长方形 + emoji 图标"的模板感
+   策略：1) 统一 SVG 线性图标（见 hh-icons.js）
+        2) 差异化外形：导航方正、卡片小直角、标签圆点、统计条左色条
+        3) 收敛渐变与毛玻璃，改用克制的实色 + 细边框 + 左侧色条
+        4) 页头标题"浩海"强制横排不换行，全机型安全区适配
+   作用范围：PC + 手机全部生效；只覆盖外观，不改任何 DOM/业务逻辑
+   可配置：见文件末尾 :root 变量
+*/
+:root {
+  --hh-design-radius-sm: 6px;    /* 小控件 */
+  --hh-design-radius-md: 8px;    /* 卡片 */
+  --hh-design-ink: #16233b;
+  --hh-design-line: rgba(21, 40, 78, 0.12);
+  --hh-design-brand: #1f5fd0;
+  --hh-design-accent-a: #2f6fed;
+  --hh-design-accent-b: #7a5cf0;
+}
+
+/* ============ 1) 图标排版：SVG 与文字对齐 ============ */
+.hh-ico { display: inline-block; vertical-align: -0.18em; flex-shrink: 0; }
+.hh-ico-text { display: inline; }
+.hh-ico-text .hh-ico { margin-right: 4px; }
+/* 已装饰文字里的 emoji 若残留（未映射），保持原样 */
+button .hh-ico, a .hh-ico { pointer-events: none; }
+
+/* 底部 Tab 图标容器：SVG 居中 */
+.hh-tab-ico .hh-ico { vertical-align: middle; }
+.hh-tab.active .hh-ico { transform: none; }
+
+/* ============ 2) 顶部导航：从"毛玻璃胶囊"改为"方正硬朗栏" ============ */
+.navbar {
+  border-radius: 0 !important;
+  top: 0 !important;
+  margin: 0 !important;
+  padding: 10px 18px calc(10px + env(safe-area-inset-top, 0px)) !important;
+  background: #14346a !important;
+  background-image: none !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 2px 12px rgba(6, 22, 56, 0.16) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: none !important;   /* 关键：去掉 blur/transition，消除滑动时抖动 */
+  will-change: auto;
+}
+/* 标题"浩海study"：强制横向、不压缩、不换行 */
+.navbar h2,
+.navbar .navbar-left h2 {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  flex-wrap: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: clamp(18px, 4.6vw, 24px) !important;
+  line-height: 1.1 !important;
+  letter-spacing: 0 !important;
+}
+.navbar h2 img,
+.navbar .navbar-left h2 img { width: 22px !important; height: 22px !important; flex-shrink: 0; }
+.navbar h2 .study-text,
+.navbar .navbar-left h2 .study-text { font-size: 0.82em !important; margin-left: 0 !important; }
+.navbar-left { flex-shrink: 0; min-width: 0; display: flex; align-items: center; gap: 8px; }
+
+.nav-back,
+.stellar-nav-btn,
+.auth-btn {
+  border-radius: var(--hh-design-radius-sm) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+.nav-back:hover, .stellar-nav-btn:hover, .auth-btn:hover { background: rgba(255,255,255,.24) !important; }
+.auth-btn.primary { background: #ffd166 !important; color: #2a1c00 !important; border-color: transparent !important; }
+/* 管理后台入口：深蓝底、白字、方角，与其他按钮区分 */
+.auth-btn.admin-entry {
+  background: #5b3df5 !important;
+  color: #fff !important;
+  border-color: #5b3df5 !important;
+  border-radius: var(--hh-design-radius-sm) !important;
+}
+
+/* ============ 3) 模块卡片：差异化外形，去统一胶囊 ============ */
+.card,
+.p0-panel,
+.news-card,
+.p0-about {
+  border-radius: var(--hh-design-radius-md) !important;
+  border: 1px solid var(--hh-design-line) !important;
+  box-shadow: 0 2px 10px rgba(18, 40, 80, 0.06) !important;
+}
+/* 三个内容模块用左侧色条 + 不同圆角，形成节奏差异 */
+#doc-card   { border-left: 4px solid #2f6fed !important; border-radius: var(--hh-design-radius-md) 3px 3px var(--hh-design-radius-md) !important; }
+#comp-card  { border-left: 4px solid #f0954a !important; border-radius: 3px var(--hh-design-radius-md) var(--hh-design-radius-md) 3px !important; }
+#scenery-card { border-left: 4px solid #38b58a !important; border-radius: var(--hh-design-radius-md) 3px var(--hh-design-radius-md) 3px !important; }
+
+/* 模块标题：去掉 emoji 后的纯文字，用左侧小竖条强调 */
+.course-title,
+.p0-section-title { font-weight: 700; letter-spacing: 0.2px; }
+
+/* P0 模块栏：方形标签 + 下划线式激活，去胶囊 */
+.p0-bar {
+  border-radius: var(--hh-design-radius-sm) !important;
+  background: #fff !important;
+  border: 1px solid var(--hh-design-line) !important;
+  box-shadow: none !important;
+}
+.p0-tab {
+  border-radius: 4px !important;
+  background: #f3f6fc !important;
+  color: #42536e !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+  transition: none !important;
+}
+.p0-tab.active {
+  background: #1f5fd0 !important;
+  color: #fff !important;
+  border-color: #1f5fd0 !important;
+  box-shadow: none !important;
+}
+/* P0 内部子标签（资料/比赛/美景等）去胶囊 */
+.p0-subtab, .p0-badge { border-radius: 4px !important; }
+.p0-stat, .p0-stat-card, .p0-points, .p0-hint, .p0-list-item, .p0-input, .p0-textarea {
+  border-radius: var(--hh-design-radius-sm) !important;
+}
+/* 贡献值卡片与统计条：去圆润，加左侧色条 */
+.p0-points { border-left: 3px solid #f0954a !important; }
+.p0-stat-card { border-left: 3px solid #2f6fed !important; }
+
+/* 子选项：从渐变胶囊改为描边方角 */
+.hh-subtabs {
+  border-radius: var(--hh-design-radius-sm) !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: none !important;
+  border: 1px solid var(--hh-design-line) !important;
+  box-shadow: none !important;
+}
+.hh-subtab {
+  border-radius: 4px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 1px solid transparent !important;
+  color: #3b4a63 !important;
+}
+.hh-subtab.active {
+  background: #1f5fd0 !important;
+  color: #fff !important;
+  border-color: #1f5fd0 !important;
+  box-shadow: none !important;
+}
+
+/* ============ 4) 按钮 / 标签 / 徽章：去 999px 胶囊 ============ */
+.add-btn, .submit-btn, .p0-btn, .filter-chip, .auth-submit,
+.sync-refresh, .filter-trigger, .filter-reset, .filter-apply {
+  border-radius: var(--hh-design-radius-sm) !important;
+}
+.p0-badge, .p0-chip { border-radius: 4px !important; }
+
+/* ============ 5) 同步条：左色条强调，去毛玻璃 ============ */
+.sync-bar {
+  border-radius: var(--hh-design-radius-sm) !important;
+  background: #fff !important;
+  border: 1px solid var(--hh-design-line) !important;
+  border-left: 4px solid #2f6fed !important;
+  box-shadow: none !important;
+}
+
+/* ============ 6) 底部 Tab：去 emoji 残留，SVG 图标统一 ============ */
+#hh-bottom-tabs {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: #fff !important;
+  border-top: 1px solid var(--hh-design-line) !important;
+  box-shadow: 0 -2px 10px rgba(18, 40, 80, 0.05) !important;
+}
+.hh-tab-ico { filter: none !important; opacity: 0.62 !important; }
+.hh-tab.active .hh-tab-ico { opacity: 1 !important; color: var(--hh-design-brand) !important; }
+.hh-tab.active { color: var(--hh-design-brand) !important; }
+
+/* ============ 7) 起始页导航（PC 端仍隐藏，手机端方正） ============ */
+.nav-tabs {
+  border-radius: 0 !important;
+  gap: 4px !important;
+}
+.nav-tab {
+  border-radius: var(--hh-design-radius-sm) !important;
+  padding: 7px 12px !important;
+  font-size: 14px !important;
+}
+
+/* ============ 8) 全机型适配：动态视口 + 安全区 + 缩小字号防挤压 ============ */
+@supports (height: 100dvh) {
+  #start-screen { height: 100dvh !important; }
+}
+/* 主界面顶部栏高度纳入内容偏移，避免遮挡（仅手机端，PC 端已有独立布局文件） */
+@media (max-width: 820px) {
+  .navbar { padding-left: 12px !important; padding-right: 12px !important; }
+  .navbar h2, .navbar .navbar-left h2 { font-size: clamp(16px, 4.2vw, 20px) !important; }
+  .auth-area .auth-email { display: none !important; }  /* 手机端隐藏用户名，给标题让位 */
+  .hh-tab-label { font-size: 10px !important; }
+  /* 极窄屏（<=360）进一步压缩，防止"浩海study"被挤换行 */
+  @media (max-width: 360px) {
+    .navbar h2, .navbar .navbar-left h2 { font-size: 15px !important; }
+    .navbar h2 img, .navbar .navbar-left h2 img { width: 18px !important; height: 18px !important; }
+    .stellar-nav-btn { display: none !important; }
+  }
+}
